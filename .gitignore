@@ -1,0 +1,8 @@
+target/
+.env
+*.log
+.claude-flow/
+.codegraph/
+.omo/
+bot/certs/
+.swarm/
