@@ -31,6 +31,18 @@ public class PrAnalysis {
     @Column(name = "commit_sha", nullable = false)
     private String commitSha;
 
+    @Column(name = "title")
+    private String title;
+
+    @Column(name = "author")
+    private String author;
+
+    @Column(name = "files_changed_count")
+    private Integer filesChangedCount = 0;
+
+    @Column(name = "files_changed_json", columnDefinition = "TEXT")
+    private String filesChangedJson;
+
     @Column(nullable = false)
     private String tier;
 
@@ -54,6 +66,24 @@ public class PrAnalysis {
 
     @Column(name = "action_taken", nullable = false)
     private Boolean actionTaken = false;
+
+    @Column(name = "target_user")
+    private String targetUser;
+
+    @Column(name = "author_reputation")
+    private String authorReputation;
+
+    @Column(name = "author_reputation_detail")
+    private String authorReputationDetail;
+
+    @Column(name = "change_summary_before", columnDefinition = "TEXT")
+    private String changeSummaryBefore;
+
+    @Column(name = "change_summary_after", columnDefinition = "TEXT")
+    private String changeSummaryAfter;
+
+    @Column(name = "repo_context", columnDefinition = "TEXT")
+    private String repoContext;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;

@@ -7,7 +7,6 @@ import jakarta.persistence.Convert;
 import jakarta.persistence.Converter;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import lombok.Data;
 
@@ -39,7 +38,6 @@ public class MaintainerConfig {
     @Column(name = "actions_enabled")
     private Boolean actionsEnabled;
 
-    @Lob
     @Column(name = "maintainer_emails", columnDefinition = "TEXT")
     @Convert(converter = StringListConverter.class)
     private List<String> maintainerEmails;
