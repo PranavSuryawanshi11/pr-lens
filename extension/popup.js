@@ -71,7 +71,7 @@ async function saveProfile() {
       if (saved && saved.notificationEmail) {
         document.getElementById("notifyEmail").value = saved.notificationEmail;
       }
-      alert("Settings saved! Auto-triage is " + (active ? "Active" : "Disabled") + ".");
+      alert("Settings saved! Auto PR-Lens review is " + (active ? "Active" : "Disabled") + ".");
     } else {
       alert("Failed to save settings.");
     }
@@ -108,7 +108,7 @@ async function triageCurrentTab() {
   }
 
   const btn = document.getElementById("triageCurrentTabBtn");
-  btn.textContent = "⏳ Triaging PR...";
+  btn.textContent = "⏳ Analyzing PR...";
   btn.disabled = true;
 
   try {
@@ -125,15 +125,15 @@ async function triageCurrentTab() {
     });
     const data = await res.json();
     if (res.ok && data.status === "SUCCESS") {
-      alert(`PR Triaged!\nTier: ${data.tier}\n${data.message}`);
+      alert(`PR Analyzed with PR-Lens!\nTier: ${data.tier}\n${data.message}`);
       loadRecentHistory();
     } else {
-      alert(data.message || data.error || "Triage failed.");
+      alert(data.message || data.error || "Analysis failed.");
     }
   } catch (e) {
     alert("Error: " + e.message);
   } finally {
-    btn.textContent = "⚡ Triage Current PR Tab";
+    btn.textContent = "⚡ Analyze Current PR Tab";
     btn.disabled = false;
   }
 }
@@ -148,7 +148,7 @@ async function loadRecentHistory() {
     }
     const items = await res.json();
     if (!items || items.length === 0) {
-      listEl.innerHTML = `<div class="empty-text">No PRs triaged yet.</div>`;
+      listEl.innerHTML = `<div class="empty-text">No PRs analyzed yet.</div>`;
       return;
     }
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Glint · Automated PR Triage & Review Console</title>
+    <title>Glint · Automated PR-Lens Review Console</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -1061,6 +1061,20 @@
             letter-spacing: 0.02em;
         }
 
+        .badge-closed {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #b91c1c;
+            background-color: #fef2f2;
+            border: 1px solid #fca5a5;
+            padding: 3px 8px;
+            border-radius: var(--radius-sm);
+            letter-spacing: 0.02em;
+        }
+
         .badge-new {
             display: inline-flex;
             align-items: center;
@@ -1443,7 +1457,7 @@
         </div>
         <div class="brand-text">
             <span class="brand-name">Glint</span>
-            <span class="brand-desc">PR Triage Engine</span>
+            <span class="brand-desc">PR-Lens Engine</span>
         </div>
         <div class="status-pill" title="Background service monitoring configured repositories every 60s">
             <span class="status-dot"></span>
@@ -1452,6 +1466,14 @@
     </div>
 
     <div class="topbar-actions">
+        <button type="button" class="ui-btn" id="installGitHubTopbarBtn" onclick="handleInstallGitHub()"
+           style="background: #24292f; color: #ffffff; border-color: #24292f; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; cursor: pointer; text-decoration: none;"
+           title="Install PR-Lens GitHub App on any repository to enable automated merging and triage">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+            </svg>
+            <span th:text="${githubAppSlug != null && !githubAppSlug.isEmpty() ? 'Install on GitHub' : 'Create & Install GitHub App'}">Create & Install GitHub App</span>
+        </button>
         <button class="ui-btn" id="syncBtn" onclick="triggerSyncNow()" aria-label="Trigger repository polling sync">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sync-icon">
                 <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
@@ -1477,7 +1499,16 @@
             <line x1="6" y1="20" x2="6" y2="14"></line>
         </svg>
         <span>Pull Requests</span>
-        <span class="tab-counter" id="tabCounterHistory" th:text="${totalCount}">0</span>
+        <span class="tab-counter" id="tabCounterHistory" th:text="${openCount != null ? openCount : totalCount}">0</span>
+    </button>
+    <button class="subnav-tab" onclick="switchTab('closed')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="15" y1="9" x2="9" y2="15"></line>
+            <line x1="9" y1="9" x2="15" y2="15"></line>
+        </svg>
+        <span>Closed Requests</span>
+        <span class="tab-counter" id="tabCounterClosed" th:text="${closedCount}">0</span>
     </button>
     <button class="subnav-tab" onclick="switchTab('actioned')">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1499,6 +1530,14 @@
         </svg>
         <span>Profile Monitoring</span>
     </button>
+    <button class="subnav-tab" onclick="switchTab('github-app')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+        </svg>
+        <span>GitHub App</span>
+        <span class="tab-counter" th:if="${githubAppConfigured != null and githubAppConfigured}" style="background:#dcfce7;color:#15803d;font-weight:600;">Active</span>
+        <span class="tab-counter" th:unless="${githubAppConfigured != null and githubAppConfigured}" style="background:#fef3c7;color:#b45309;font-weight:600;">Install</span>
+    </button>
     <button class="subnav-tab" onclick="switchTab('extension')">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48 2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48 2.83-2.83"></path>
@@ -1509,6 +1548,18 @@
 
 <!-- ── Main Workspace Content ── -->
 <main class="main-layout">
+
+    <!-- GitHub App Installation Success Alert -->
+    <div th:if="${installed != null and installed}" style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 16px 20px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; box-shadow: 0 2px 4px rgba(22, 101, 52, 0.06);">
+        <div style="display: flex; align-items: center; gap: 14px;">
+            <div style="font-size: 28px;">🎉</div>
+            <div>
+                <h3 style="color: #15803d; font-size: 15px; font-weight: 700; margin-bottom: 2px;">PR-Lens GitHub App Installed Successfully!</h3>
+                <p style="color: #166534; font-size: 13px; line-height: 1.4; margin: 0;">Your repository is now connected with native permissions. Any new Pull Request will be automatically triaged, and maintainers can <strong>Accept (Merge)</strong> or <strong>Reject (Close)</strong> directly with 1-click from email without needing collaborators or manual tokens!</p>
+            </div>
+        </div>
+        <button onclick="this.parentElement.remove()" style="background: none; border: none; font-size: 20px; color: #15803d; cursor: pointer; padding: 4px 8px;">&times;</button>
+    </div>
 
     <!-- KPI Metric Summary Row -->
     <section class="metrics-strip" aria-label="PR Analysis Metrics">
@@ -1563,6 +1614,19 @@
             </div>
             <div class="metric-value" th:text="${greenCount}">0</div>
         </div>
+        <div class="metric-cell neutral" onclick="switchTab('closed')" style="cursor: pointer;" title="Click to view all closed pull requests">
+            <div class="metric-header">
+                <span class="metric-label">Closed PRs</span>
+                <div class="metric-icon" style="color: #ef4444; background: #fee2e2;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="15" y1="9" x2="9" y2="15"></line>
+                        <line x1="9" y1="9" x2="15" y2="15"></line>
+                    </svg>
+                </div>
+            </div>
+            <div class="metric-value" id="kpiClosedCount" th:text="${closedCount}">0</div>
+        </div>
         <div class="metric-cell neutral" onclick="switchTab('actioned')" style="cursor: pointer;" title="Click to view all actioned pull requests">
             <div class="metric-header">
                 <span class="metric-label">Decisions Taken</span>
@@ -1591,7 +1655,7 @@
                 </div>
                 <div>
                     <h2>Autonomous Profile Monitoring</h2>
-                    <p>Background worker continuously checks open PRs across your GitHub repositories, calculates risk scores, and routes email triage alerts.</p>
+                    <p>Background worker continuously checks open PRs across your GitHub repositories, calculates risk scores, and routes email PR-Lens alerts.</p>
                 </div>
             </div>
         </div>
@@ -1611,13 +1675,13 @@
                 </svg>
                 <span>Switch / Load</span>
             </button>
-            <!-- Destination Email for PR Triage Alerts & Decisions -->
-            <div class="github-linked-email-card" id="linkedEmailCard" title="Destination email for PR triage decisions and alerts (click to edit, auto-detects from GitHub)">
+            <!-- Destination Email for PR-Lens Alerts & Decisions -->
+            <div class="github-linked-email-card" id="linkedEmailCard" title="Destination email for PR-Lens decisions and alerts (click to edit, auto-detects from GitHub)">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="email-card-icon">
                     <rect x="2" y="4" width="20" height="16" rx="2"></rect>
                     <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
                 </svg>
-                <input type="email" id="quickEmail" class="linked-email-input" th:value="${profile.notificationEmail != null && !profile.notificationEmail.isBlank() ? profile.notificationEmail : ''}" placeholder="Enter alert email..." title="Type your email address here to receive triage alerts">
+                <input type="email" id="quickEmail" class="linked-email-input" th:value="${profile.notificationEmail != null && !profile.notificationEmail.isBlank() ? profile.notificationEmail : ''}" placeholder="Enter alert email..." title="Type your email address here to receive PR-Lens alerts">
                 <span class="linked-email-badge" id="emailBadge" onclick="fetchLinkedEmailForUser(document.getElementById('quickUsername').value.trim())" title="Click to auto-fetch email from GitHub account" style="cursor: pointer;">
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.1-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2z"/>
@@ -1638,7 +1702,7 @@
                 </svg>
                 <span>Save Settings</span>
             </button>
-            <button class="ui-btn ui-btn-outline" id="btnTestEmail" onclick="sendTestTriageEmail()" title="Send an immediate triage alert with Approve & Reject buttons to your linked Gmail">
+            <button class="ui-btn ui-btn-outline" id="btnTestEmail" onclick="sendTestTriageEmail()" title="Send an immediate PR-Lens alert with Approve & Reject buttons to your linked Gmail">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="22" y1="2" x2="11" y2="13"></line>
                     <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
@@ -1668,6 +1732,7 @@
                 <button class="filter-btn" onclick="setFilter('SECURITY', this)">Security</button>
                 <button class="filter-btn" onclick="setFilter('BUGS', this)">🐛 Bugs</button>
                 <button class="filter-btn" onclick="setFilter('DONE', this)">Actioned</button>
+                <button class="filter-btn" onclick="setFilter('CLOSED', this)">Closed</button>
             </div>
         </div>
 
@@ -1675,7 +1740,7 @@
         <div id="historyTableWrapper">
             <!-- Table View -->
             <div id="tableContainer" class="table-container" th:unless="${empty}">
-                <table class="data-table" aria-label="Pull Request Triage History">
+                <table class="data-table" aria-label="PR-Lens History">
                     <thead>
                     <tr>
                         <th style="width: 120px;">Priority & Risk</th>
@@ -1688,7 +1753,8 @@
                     </thead>
                     <tbody id="prTableBody">
                     <tr th:each="r : ${rows}" 
-                        th:attr="data-tier=${r.tier}, data-sec=${r.security}, data-bug=${r.bugFlag}, data-actioned=${r.actioned}"
+                        th:attr="data-tier=${r.tier}, data-sec=${r.security}, data-bug=${r.bugFlag}, data-actioned=${r.actioned}, data-closed=${r.closed}, data-action-type=${r.actionType}"
+                        th:style="${r.closed ? 'display: none;' : ''}"
                         class="pr-row">
                         <!-- Priority Tier -->
                         <td>
@@ -1722,7 +1788,7 @@
                                    th:data-changes="${r.changesUrl}"
                                    th:data-close="${r.closeUrl}"
                                    th:text="${r.title}"
-                                   title="Click to view full PR triage assessment">PR Title</a>
+                                   title="Click to view full PR-Lens assessment">PR Title</a>
                                 <a th:href="@{https://github.com/{owner}/{repo}/pull/{pr}(owner=${r.owner},repo=${r.repo},pr=${r.prNumber})}" 
                                    target="_blank" rel="noopener noreferrer" class="github-ext-link"
                                    title="Open on GitHub (external)">
@@ -1766,13 +1832,22 @@
                         </td>
                         <!-- Status -->
                         <td class="status-cell">
-                            <span th:if="${r.actioned}" class="badge-completed">ACTIONED</span>
-                            <span th:unless="${r.actioned}" class="badge-new" th:text="${r.status}">NEW</span>
+                            <span th:if="${r.closed}" class="badge-closed">CLOSED</span>
+                            <span th:if="${!r.closed && r.actioned}" class="badge-completed">ACTIONED</span>
+                            <span th:if="${!r.closed && !r.actioned}" class="badge-new" th:text="${r.status}">NEW</span>
                         </td>
                         <!-- Quick Decision Actions -->
                         <td class="actions-cell">
                             <span class="action-button-group">
-                                <span th:if="${r.actioned}" class="badge-completed" style="margin-right: 4px; padding: 3px 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;" title="Triage decision applied">
+                                <span th:if="${r.closed}" class="badge-closed" style="margin-right: 4px; padding: 3px 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;" title="Closed pull request">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="15" y1="9" x2="9" y2="15"></line>
+                                        <line x1="9" y1="9" x2="15" y2="15"></line>
+                                    </svg>
+                                    <span>CLOSED</span>
+                                </span>
+                                <span th:if="${!r.closed && r.actioned}" class="badge-completed" style="margin-right: 4px; padding: 3px 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;" title="Triage decision applied">
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                         <polyline points="20 6 9 17 4 12"></polyline>
                                     </svg>
@@ -1795,7 +1870,7 @@
                                         th:data-changes="${r.changesUrl}"
                                         th:data-close="${r.closeUrl}"
                                         onclick="openPrModal(this)"
-                                        title="View full AI assessment and findings">
+                                        title="View full PR-Lens assessment and findings">
                                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <circle cx="12" cy="12" r="10"></circle>
                                         <line x1="12" y1="16" x2="12" y2="12"></line>
@@ -1803,20 +1878,20 @@
                                     </svg>
                                     <span>Details</span>
                                 </button>
-                                <a class="action-btn action-btn-approve" th:href="${r.approveUrl}" onclick="executeRowAction(this, event, 'approve')" title="Approve pull request">
+                                <a th:unless="${r.closed}" class="action-btn action-btn-approve" th:href="${r.approveUrl}" onclick="executeRowAction(this, event, 'approve')" title="Approve pull request">
                                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                         <polyline points="20 6 9 17 4 12"></polyline>
                                     </svg>
                                     <span>Approve</span>
                                 </a>
-                                <a class="action-btn action-btn-changes" th:href="${r.changesUrl}" onclick="executeRowAction(this, event, 'request-changes')" title="Request changes on pull request">
+                                <a th:unless="${r.closed}" class="action-btn action-btn-changes" th:href="${r.changesUrl}" onclick="executeRowAction(this, event, 'request-changes')" title="Request changes on pull request">
                                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                                     </svg>
                                     <span>Changes</span>
                                 </a>
-                                <a class="action-btn action-btn-reject" th:href="${r.closeUrl}" onclick="executeRowAction(this, event, 'close')" title="Close pull request">
+                                <a th:unless="${r.closed}" class="action-btn action-btn-reject" th:href="${r.closeUrl}" onclick="executeRowAction(this, event, 'close')" title="Close pull request">
                                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                         <line x1="18" y1="6" x2="6" y2="18"></line>
                                         <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -1843,8 +1918,190 @@
                         </svg>
                     </div>
                     <h3 class="empty-title" th:text="${activeUser != null && !activeUser.isEmpty() ? 'No PRs analyzed yet for @' + activeUser : 'No PRs analyzed yet.'}">No PRs analyzed yet.</h3>
-                    <p class="empty-description" th:text="${activeUser != null && !activeUser.isEmpty() ? 'No pull requests analyzed for @' + activeUser + ' yet. Trigger a sync or run an on-demand triage to begin automated code analysis.' : 'Enter your GitHub username above and click Switch / Load to load your PR triage history.'}">Enter your GitHub username above and click Switch / Load to load your PR triage history.</p>
+                    <p class="empty-description" th:text="${activeUser != null && !activeUser.isEmpty() ? 'No pull requests analyzed for @' + activeUser + ' yet. Trigger a sync or run an on-demand PR-Lens review to begin automated code analysis.' : 'Enter your GitHub username above and click Switch / Load to load your PR-Lens history.'}">Enter your GitHub username above and click Switch / Load to load your PR-Lens history.</p>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Tab: Closed Requests Section ── -->
+    <div id="tab-closed" class="tab-pane" style="display: none;">
+        <div class="card-panel">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: var(--space-3);">
+                <div>
+                    <h2 class="card-title" style="display: flex; align-items: center; gap: 8px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: #ef4444;">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="15" y1="9" x2="9" y2="15"></line>
+                            <line x1="9" y1="9" x2="15" y2="15"></line>
+                        </svg>
+                        <span>Closed Pull Requests</span>
+                    </h2>
+                    <p class="card-desc">All pull requests that have been closed or rejected. Closed requests are archived here and separated from the active Pull Requests list.</p>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="badge-closed" style="padding: 5px 12px; font-size: 12px; font-weight: 600;">
+                        <span id="closedBannerCount" th:text="${closedCount}">0</span> Closed Requests
+                    </span>
+                    <button class="ui-btn ui-btn-outline" style="height: 32px;" onclick="switchTab('history')">
+                        <span>View Active PRs</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Closed Table -->
+            <div id="closedTableContainer" class="table-responsive" th:style="${closedCount > 0 ? '' : 'display: none;'}">
+                <table class="data-table" aria-label="Closed Pull Requests">
+                    <thead>
+                    <tr>
+                        <th style="width: 120px;">Priority & Risk</th>
+                        <th style="min-width: 250px;">Pull Request</th>
+                        <th class="table-summary" style="min-width: 340px;">Code Change &amp; AI Summary</th>
+                        <th style="width: 85px; text-align: center;">Scope</th>
+                        <th style="width: 100px; text-align: center;">Status</th>
+                        <th style="width: 150px; text-align: right;">Quick Decisions</th>
+                    </tr>
+                    </thead>
+                    <tbody id="closedTableBody">
+                    <tr th:each="r : ${rows}" th:if="${r.closed}"
+                        th:attr="data-tier=${r.tier}, data-sec=${r.security}, data-bug=${r.bugFlag}, data-actioned=${r.actioned}, data-closed='true', data-action-type=${r.actionType}"
+                        class="pr-row closed-pr-row">
+                        <!-- Priority Tier -->
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                <span class="tier-badge" th:classappend="${r.tier}">
+                                    <span th:text="${r.tier}">TIER</span>
+                                </span>
+                                <div th:if="${r.security}">
+                                    <span class="sec-tag">🔒 Security</span>
+                                </div>
+                                <div th:if="${r.bugFlag}">
+                                    <span class="bug-tag">🐛 Code Bug</span>
+                                </div>
+                            </div>
+                        </td>
+                        <!-- Pull Request Title & Metadata -->
+                        <td>
+                            <div class="pr-title-row">
+                                <a href="javascript:void(0)" onclick="openPrModal(this)" class="pr-title-link"
+                                   th:data-title="${r.title}"
+                                   th:data-pr="${r.pr}"
+                                   th:data-tier="${r.tier}"
+                                   th:data-sec="${r.security}"
+                                   th:data-summary="${r.fullSummary}"
+                                   th:data-findings="${r.findingsJson}"
+                                   th:data-author="${r.author}"
+                                   th:data-rep="${r.authorReputation}"
+                                   th:data-repdetail="${r.authorReputationDetail}"
+                                   th:data-repocontext="${r.repoContext}"
+                                   th:data-before="${r.changeSummaryBefore}"
+                                   th:data-after="${r.changeSummaryAfter}"
+                                   th:data-approve="${r.approveUrl}"
+                                   th:data-changes="${r.changesUrl}"
+                                   th:data-close="${r.closeUrl}"
+                                   th:text="${r.title}"
+                                   title="Click to view full PR-Lens assessment">PR Title</a>
+                                <a th:href="@{https://github.com/{owner}/{repo}/pull/{pr}(owner=${r.owner},repo=${r.repo},pr=${r.prNumber})}" 
+                                   target="_blank" rel="noopener noreferrer" class="github-ext-link"
+                                   title="Open on GitHub (external)">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                        <polyline points="15 3 21 3 21 9"></polyline>
+                                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                                    </svg>
+                                </a>
+                            </div>
+                            <div class="pr-metadata">
+                                <span class="repo-tag" th:text="${r.pr}">owner/repo #1</span>
+                                <span>&bull;</span>
+                                <span th:text="${'@' + r.author}">@author</span>
+                                <span th:if="${r.authorReputation == 'RETURNING_CONTRIBUTOR'}" class="rep-pill rep-returning">Returning</span>
+                                <span th:if="${r.authorReputation == 'FIRST_TIME_CONTRIBUTOR'}" class="rep-pill rep-first-time">First-time</span>
+                                <span th:if="${r.authorReputation == 'COLLABORATOR'}" class="rep-pill rep-collaborator">Collaborator</span>
+                                <span th:if="${r.authorReputation == 'MEMBER'}" class="rep-pill rep-member">Member</span>
+                                <span th:if="${r.authorReputation == 'OWNER' || r.authorReputation == 'TRUSTED_MAINTAINER'}" class="rep-pill rep-owner">Owner</span>
+                                <span>&bull;</span>
+                                <span th:text="${r.createdAt}">recently</span>
+                            </div>
+                        </td>
+                        <!-- Code Change Summary -->
+                        <td class="table-summary">
+                            <div class="code-diff-preview" th:if="${(r.changeSummaryBefore != null && !r.changeSummaryBefore.isEmpty()) || (r.changeSummaryAfter != null && !r.changeSummaryAfter.isEmpty())}">
+                                <div class="diff-before-pill" th:if="${r.changeSummaryBefore != null && !r.changeSummaryBefore.isEmpty()}">
+                                    <span class="badge-prev">Was</span>
+                                    <span th:text="${r.changeSummaryBefore}">Prior implementation</span>
+                                </div>
+                                <div class="diff-after-pill" th:if="${r.changeSummaryAfter != null && !r.changeSummaryAfter.isEmpty()}">
+                                    <span class="badge-new-code">Now</span>
+                                    <span th:text="${r.changeSummaryAfter}">New implementation</span>
+                                </div>
+                            </div>
+                            <div class="summary-clamp" th:unless="${(r.changeSummaryBefore != null && !r.changeSummaryBefore.isEmpty()) || (r.changeSummaryAfter != null && !r.changeSummaryAfter.isEmpty())}" th:title="${r.fullSummary}" th:text="${r.summary}">
+                                Summary text
+                            </div>
+                        </td>
+                        <!-- Scope (Files) -->
+                        <td style="text-align: center;">
+                            <span class="files-badge" th:text="${r.filesCount + ' files'}">0 files</span>
+                        </td>
+                        <!-- Status -->
+                        <td class="status-cell">
+                            <span class="badge-closed">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="15" y1="9" x2="9" y2="15"></line>
+                                    <line x1="9" y1="9" x2="15" y2="15"></line>
+                                </svg>
+                                <span>CLOSED</span>
+                            </span>
+                        </td>
+                        <!-- Quick Decisions -->
+                        <td class="actions-cell">
+                            <span class="action-button-group">
+                                <button class="action-btn action-btn-details" 
+                                        th:data-title="${r.title}"
+                                        th:data-pr="${r.pr}"
+                                        th:data-tier="${r.tier}"
+                                        th:data-sec="${r.security}"
+                                        th:data-summary="${r.fullSummary}"
+                                        th:data-findings="${r.findingsJson}"
+                                        th:data-author="${r.author}"
+                                        th:data-rep="${r.authorReputation}"
+                                        th:data-repdetail="${r.authorReputationDetail}"
+                                        th:data-repocontext="${r.repoContext}"
+                                        th:data-before="${r.changeSummaryBefore}"
+                                        th:data-after="${r.changeSummaryAfter}"
+                                        th:data-approve="${r.approveUrl}"
+                                        th:data-changes="${r.changesUrl}"
+                                        th:data-close="${r.closeUrl}"
+                                        onclick="openPrModal(this)"
+                                        title="View full PR-Lens assessment and findings">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                    </svg>
+                                    <span>Details</span>
+                                </button>
+                            </span>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Empty State for Closed Requests -->
+            <div id="closedEmptyState" th:style="${closedCount == 0 ? '' : 'display: none;'}" class="empty-state-panel" style="padding: var(--space-8); text-align: center;">
+                <div class="empty-icon-wrap" style="width: 48px; height: 48px; margin: 0 auto var(--space-3); background: #fef2f2; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #ef4444;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="15" y1="9" x2="9" y2="15"></line>
+                        <line x1="9" y1="9" x2="15" y2="15"></line>
+                    </svg>
+                </div>
+                <h3 class="empty-title">No closed pull requests</h3>
+                <p class="empty-description" style="max-width: 420px; margin: 0 auto var(--space-4);">When pull requests are closed or rejected from email alerts or the dashboard, they are removed from the active section and recorded here.</p>
+                <button class="ui-btn ui-btn-primary" onclick="switchTab('history')">Go to Active Pull Requests</button>
             </div>
         </div>
     </div>
@@ -1921,7 +2178,7 @@
                                    th:data-changes="${r.changesUrl}"
                                    th:data-close="${r.closeUrl}"
                                    th:text="${r.title}"
-                                   title="Click to view full PR triage assessment">Pull Request Title</a>
+                                   title="Click to view full PR-Lens assessment">Pull Request Title</a>
                                 <a th:href="${'https://github.com/' + r.owner + '/' + r.repo + '/pull/' + r.prNumber}"
                                    target="_blank" rel="noopener noreferrer" class="github-ext-link"
                                    title="Open on GitHub (external)">
@@ -2052,7 +2309,7 @@
     <div id="tab-ondemand" class="tab-pane" style="display: none;">
         <div class="card-panel">
             <div class="card-header">
-                <h2 class="card-title">On-Demand Pull Request Triage</h2>
+                <h2 class="card-title">On-Demand Pull Request PR-Lens Review</h2>
                 <p class="card-desc">Execute heuristics, security scanning, and smart summary pipeline on any GitHub pull request URL immediately.</p>
             </div>
 
@@ -2079,7 +2336,7 @@
     <div id="tab-profile" class="tab-pane" style="display: none;">
         <div class="card-panel" style="max-width: 640px;">
             <div class="card-header">
-                <h2 class="card-title">GitHub Profile Auto-Triage Configuration</h2>
+                <h2 class="card-title">GitHub Profile Auto PR-Lens Configuration</h2>
                 <p class="card-desc">Configure the background polling daemon to continuously monitor pull requests across your GitHub account.</p>
             </div>
 
@@ -2091,7 +2348,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="profEmail">Notification & Triage Alert Email</label>
+                    <label class="form-label" for="profEmail">Notification & PR-Lens Alert Email</label>
                     <div style="display: flex; gap: var(--space-2); align-items: center;">
                         <input type="email" id="profEmail" class="ui-input" th:value="${profile.notificationEmail != null ? profile.notificationEmail : ''}" placeholder="e.g. yourname@gmail.com" style="flex: 1;">
                         <button type="button" class="ui-btn ui-btn-outline" onclick="fetchLinkedEmailForUser(document.getElementById('profUsername').value.trim())" title="Fetch email directly from GitHub account">
@@ -2113,7 +2370,7 @@
                 <div class="form-group">
                     <label class="ui-toggle">
                         <input type="checkbox" id="profAutoToggle" th:checked="${profile.autoTriageEnabled}">
-                        <span>Permanently enable automatic background triage</span>
+                        <span>Permanently enable automatic background PR-Lens review</span>
                     </label>
                 </div>
 
@@ -2129,7 +2386,7 @@
         <div class="card-panel" style="max-width: 680px;">
             <div class="card-header">
                 <h2 class="card-title">Glint Browser Extension (Manifest V3)</h2>
-                <p class="card-desc">Triage both public and private GitHub pull requests directly within GitHub.com using session-level diff extraction.</p>
+                <p class="card-desc">Review both public and private GitHub pull requests directly within GitHub.com using PR-Lens session-level diff extraction.</p>
             </div>
 
             <div style="background-color: var(--color-canvas-subtle); border: 1px solid var(--color-border-default); border-radius: var(--radius-md); padding: var(--space-4); margin-bottom: var(--space-4);">
@@ -2139,13 +2396,133 @@
                     <li>Toggle <strong>Developer mode</strong> in the top-right corner.</li>
                     <li>Click <strong>Load unpacked</strong>.</li>
                     <li>Select the <code style="font-family: var(--font-mono); font-size: 11px; background: var(--color-canvas-inset); padding: 1px 4px; border-radius: 3px;">extension</code> directory from this workspace.</li>
-                    <li>Open any Pull Request on GitHub to view embedded triage badges and actions.</li>
+                    <li>Open any Pull Request on GitHub to view embedded PR-Lens badges and actions.</li>
                 </ol>
             </div>
 
             <div style="display: flex; gap: var(--space-2);">
                 <a href="/api/history" target="_blank" class="ui-btn">REST History Endpoint</a>
                 <a href="/api/stats" target="_blank" class="ui-btn">REST Stats Endpoint</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Tab: GitHub App Integration (CodeRabbit-Style Auto-Merge) ── -->
+    <div id="tab-github-app" class="tab-pane" style="display: none;">
+        <div class="card-panel" style="max-width: 860px;">
+            <div class="card-header" style="display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                <div>
+                    <h2 class="card-title" style="display: flex; align-items: center; gap: 8px;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                        </svg>
+                        <span>GitHub App Integration (CodeRabbit-Style Auto-Merge & Triage)</span>
+                    </h2>
+                    <p class="card-desc">Allows any developer or organization on GitHub to install PR-Lens with 1-click. Grants native permissions to Auto-Merge (Accept) and Auto-Close (Reject) pull requests directly on GitHub without editing .env or adding collaborators.</p>
+                </div>
+                <div>
+                    <span th:if="${githubAppConfigured != null and githubAppConfigured}" style="display: inline-flex; align-items: center; gap: 6px; background: #dcfce7; color: #15803d; border: 1px solid #86efac; border-radius: 9999px; padding: 4px 12px; font-weight: 600; font-size: 12px;">
+                        <span style="width: 8px; height: 8px; border-radius: 50%; background: #16a34a;"></span>
+                        <span>GitHub App Active</span>
+                    </span>
+                    <span th:unless="${githubAppConfigured != null and githubAppConfigured}" style="display: inline-flex; align-items: center; gap: 6px; background: #fef3c7; color: #b45309; border: 1px solid #fcd34d; border-radius: 9999px; padding: 4px 12px; font-weight: 600; font-size: 12px;">
+                        <span style="width: 8px; height: 8px; border-radius: 50%; background: #d97706;"></span>
+                        <span>Standalone PAT Mode</span>
+                    </span>
+                </div>
+            </div>
+
+            <!-- 1-Click Install Card -->
+            <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: #ffffff; border-radius: var(--radius-lg); padding: 24px; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);">
+                <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8; font-weight: 700; margin-bottom: 6px;">Instant 1-Click Installation</div>
+                <h3 style="font-size: 18px; font-weight: 700; color: #f8fafc; margin-bottom: 8px;">Install PR-Lens on Your Repositories</h3>
+                <p style="font-size: 13px; color: #cbd5e1; line-height: 1.5; margin-bottom: 16px; max-width: 640px;">
+                    Click below to open GitHub and select the repositories you want PR-Lens to monitor (e.g. <code>yash1648/SSDCVE</code> or All Repositories). GitHub will automatically grant PR-Lens native permissions to triage, review, merge, and close PRs.
+                </p>
+                <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+                    <button type="button" onclick="handleInstallGitHub()" class="ui-btn"
+                       style="background: #2563eb; color: #ffffff; border: none; font-size: 13px; font-weight: 600; padding: 9px 18px; display: inline-flex; align-items: center; gap: 8px; border-radius: 6px; box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3); cursor: pointer;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                        </svg>
+                        <span th:text="${githubAppSlug != null && !githubAppSlug.isEmpty() ? 'Install on Repositories' : 'Create & Install My GitHub App'}">Create & Install My GitHub App</span>
+                    </button>
+                    <button class="ui-btn" onclick="copyInstallLink()" style="background: rgba(255,255,255,0.1); color: #ffffff; border: 1px solid rgba(255,255,255,0.2); font-size: 13px;">
+                        <span>Copy Public Install Link</span>
+                    </button>
+                    <input type="hidden" id="publicInstallLink" th:value="${githubPublicAppUrl}">
+                    <input type="hidden" id="githubAppSlugVal" th:value="${githubAppSlug}">
+                    <input type="hidden" id="serverBaseUrlVal" th:value="${baseUrl}">
+                    <input type="hidden" id="serverWebhookUrlVal" th:value="${webhookUrl}">
+                </div>
+            </div>
+
+            <!-- CodeRabbit Architecture Comparison -->
+            <div style="margin-bottom: 24px;">
+                <div style="font-weight: 700; font-size: 14px; margin-bottom: 12px; color: var(--color-fg-default);">How CodeRabbit-Style Automated Merging Works</div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px;">
+                    <div style="background: var(--color-canvas-subtle); border: 1px solid var(--color-border-default); border-radius: var(--radius-md); padding: 16px;">
+                        <div style="font-size: 24px; margin-bottom: 6px;">1️⃣</div>
+                        <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px;">Zero-Config Install</div>
+                        <div style="font-size: 12px; color: var(--color-fg-muted); line-height: 1.4;">Any user installs PR-Lens onto their personal or org repository in 1 click. No tokens pasted into .env, no collaborator invites.</div>
+                    </div>
+                    <div style="background: var(--color-canvas-subtle); border: 1px solid var(--color-border-default); border-radius: var(--radius-md); padding: 16px;">
+                        <div style="font-size: 24px; margin-bottom: 6px;">2️⃣</div>
+                        <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px;">Automated PR Triage</div>
+                        <div style="font-size: 12px; color: var(--color-fg-muted); line-height: 1.4;">When a PR is opened, GitHub sends an event with an installation ID. PR-Lens runs security and LLM diff analysis.</div>
+                    </div>
+                    <div style="background: var(--color-canvas-subtle); border: 1px solid var(--color-border-default); border-radius: var(--radius-md); padding: 16px;">
+                        <div style="font-size: 24px; margin-bottom: 6px;">3️⃣</div>
+                        <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px;">1-Click Merge / Close</div>
+                        <div style="font-size: 12px; color: var(--color-fg-muted); line-height: 1.4;">Clicking "Accept" in email directly merges the PR on GitHub via native write token. Clicking "Reject" directly closes it.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Zero-Config GitHub App Manifest Creator -->
+            <div style="background: var(--color-canvas-subtle); border: 1px solid var(--color-border-default); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 24px;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 12px;">
+                    <div>
+                        <div style="font-weight: 700; font-size: 13px; color: var(--color-fg-default);">1-Click GitHub App Creator (Official GitHub Manifest Flow)</div>
+                        <div style="font-size: 12px; color: var(--color-fg-muted); margin-top: 2px;">
+                            Need to register your own official GitHub App? Click below and GitHub will open with all permissions (Pull requests: write, Issues: write, Webhooks) pre-filled automatically!
+                        </div>
+                    </div>
+                </div>
+
+                <form id="manifestForm" action="https://github.com/settings/apps/new" method="post" target="_blank" style="margin-bottom: 12px;">
+                    <input type="hidden" name="manifest" id="manifestJsonInput">
+                    <button type="button" class="ui-btn" onclick="submitAppManifest()" style="background: #0969da; color: #ffffff; border: none; font-weight: 600; padding: 8px 16px;">
+                        <span>Create GitHub App via 1-Click Manifest</span>
+                    </button>
+                </form>
+
+                <div style="font-size: 11px; color: var(--color-fg-subtle); line-height: 1.5;">
+                    💡 <strong>How it works:</strong> Clicking will open GitHub to register the App under <strong>your own personal account</strong> with write permissions and your ngrok webhook. When you click Create on GitHub, PR-Lens automatically registers the app, saves your private key, and immediately redirects you to install it on your repositories!
+                </div>
+            </div>
+
+            <!-- Current App Settings & Runtime Status -->
+            <div style="border-top: 1px solid var(--color-border-default); padding-top: 16px;">
+                <div style="font-weight: 700; font-size: 13px; margin-bottom: 12px; color: var(--color-fg-default);">Integration Status & Endpoints</div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; font-size: 12px;">
+                    <div style="background: var(--color-canvas-inset); padding: 10px 12px; border-radius: 6px;">
+                        <span style="color: var(--color-fg-subtle); font-weight: 600;">App Slug:</span>
+                        <div style="font-family: var(--font-mono); margin-top: 2px;" th:text="${githubAppSlug != null && !githubAppSlug.isEmpty() ? githubAppSlug : 'Not Registered Yet (Click Create & Install)'}">Not Registered Yet</div>
+                    </div>
+                    <div style="background: var(--color-canvas-inset); padding: 10px 12px; border-radius: 6px;">
+                        <span style="color: var(--color-fg-subtle); font-weight: 600;">App ID:</span>
+                        <div style="font-family: var(--font-mono); margin-top: 2px;" th:text="${githubAppId != '' ? githubAppId : 'None (using PAT fallback)'}"></div>
+                    </div>
+                    <div style="background: var(--color-canvas-inset); padding: 10px 12px; border-radius: 6px;">
+                        <span style="color: var(--color-fg-subtle); font-weight: 600;">Webhook URL:</span>
+                        <div style="font-family: var(--font-mono); margin-top: 2px; word-break: break-all;" th:text="${webhookUrl}">http://localhost:8080/api/webhook</div>
+                    </div>
+                    <div style="background: var(--color-canvas-inset); padding: 10px 12px; border-radius: 6px;">
+                        <span style="color: var(--color-fg-subtle); font-weight: 600;">Direct Auto-Merge (Accept):</span>
+                        <div style="color: #16a34a; font-weight: 600; margin-top: 2px;">Supported (PUT /pulls/{id}/merge)</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -2243,6 +2620,73 @@
         if (btn) btn.classList.add('active');
     }
 
+    // GitHub App Helpers
+    function copyInstallLink() {
+        const link = document.getElementById('publicInstallLink') ? document.getElementById('publicInstallLink').value : '';
+        const target = link || (window.location.origin + '/setup');
+        navigator.clipboard.writeText(target).then(() => {
+            alert('Public GitHub App link copied to clipboard!\nShare this with anyone to let them install PR-Lens on their repos.');
+        }).catch(() => {
+            prompt('Copy this GitHub App installation link:', target);
+        });
+    }
+
+    function handleInstallGitHub() {
+        const slugInput = document.getElementById('githubAppSlugVal');
+        const slug = slugInput ? slugInput.value.trim() : '';
+        if (slug && slug !== '') {
+            window.open('https://github.com/apps/' + encodeURIComponent(slug) + '/installations/new', '_blank');
+        } else {
+            submitAppManifest();
+        }
+    }
+
+    function submitAppManifest() {
+        const serverBaseInput = document.getElementById('serverBaseUrlVal');
+        const serverWebhookInput = document.getElementById('serverWebhookUrlVal');
+
+        let origin = (serverBaseInput && serverBaseInput.value && serverBaseInput.value.startsWith('http'))
+                ? serverBaseInput.value.trim().replace(/\/+$/, '')
+                : window.location.origin;
+
+        let webhookUrl = (serverWebhookInput && serverWebhookInput.value && serverWebhookInput.value.startsWith('http'))
+                ? serverWebhookInput.value.trim()
+                : (origin + '/api/webhook');
+
+        const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+        const appName = "pr-lens-" + randomSuffix;
+
+        const manifest = {
+            name: appName,
+            url: origin,
+            description: "Automated PR Triage, Direct Merge & Reject Bot by PR-Lens",
+            hook_attributes: {
+                url: webhookUrl,
+                active: true
+            },
+            redirect_url: origin + "/setup",
+            public: true,
+            default_permissions: {
+                pull_requests: "write",
+                issues: "write",
+                contents: "write",
+                metadata: "read"
+            },
+            default_events: [
+                "pull_request"
+            ]
+        };
+
+        const form = document.getElementById('manifestForm');
+        const input = document.getElementById('manifestJsonInput');
+        if (form && input) {
+            input.value = JSON.stringify(manifest);
+            form.submit();
+        } else {
+            console.error('manifestForm not found in DOM');
+        }
+    }
+
     // Filter Logic
     let activeFilter = 'ALL';
     function setFilter(tier, btn) {
@@ -2254,20 +2698,30 @@
 
     function filterHistory() {
         const query = (document.getElementById('searchInput').value || '').toLowerCase().trim();
-        const rows = document.querySelectorAll('.pr-row');
+        const rows = document.querySelectorAll('#prTableBody .pr-row');
 
         rows.forEach(row => {
             const tier = row.getAttribute('data-tier') || '';
             const isSec = row.getAttribute('data-sec') === 'true';
             const isBug = row.getAttribute('data-bug') === 'true';
             const isActioned = row.getAttribute('data-actioned') === 'true';
+            const isClosed = row.getAttribute('data-closed') === 'true';
             const text = row.innerText.toLowerCase();
 
-            const matchesTier = (activeFilter === 'ALL') ||
-                                (activeFilter === tier) ||
-                                (activeFilter === 'SECURITY' && isSec) ||
-                                (activeFilter === 'BUGS' && isBug) ||
-                                (activeFilter === 'DONE' && isActioned);
+            let matchesTier = false;
+            if (activeFilter === 'ALL') {
+                matchesTier = !isClosed;
+            } else if (activeFilter === 'CLOSED') {
+                matchesTier = isClosed;
+            } else if (activeFilter === 'SECURITY') {
+                matchesTier = isSec && !isClosed;
+            } else if (activeFilter === 'BUGS') {
+                matchesTier = isBug && !isClosed;
+            } else if (activeFilter === 'DONE') {
+                matchesTier = isActioned && !isClosed;
+            } else {
+                matchesTier = (activeFilter === tier) && !isClosed;
+            }
 
             const matchesSearch = !query || text.includes(query);
             row.style.display = (matchesTier && matchesSearch) ? '' : 'none';
@@ -2455,11 +2909,15 @@
         }
     }
 
-    // Initialize resolvers on DOM load
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', setupUsernameEmailResolvers);
-    } else {
+    // Initialize resolvers and filters on DOM load
+    function initDashboard() {
         setupUsernameEmailResolvers();
+        filterHistory();
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initDashboard);
+    } else {
+        initDashboard();
     }
 
     // On-Demand Triage Execution
@@ -2731,51 +3189,107 @@
         const yellow = stats.yellowCount ?? stats.yellow ?? 0;
         const green = stats.greenCount ?? stats.green ?? 0;
         const actioned = stats.actionedCount ?? stats.actioned ?? 0;
+        const closed = stats.closedCount ?? stats.closed ?? 0;
+        const open = stats.openCount ?? stats.open ?? (total - closed);
 
-        document.querySelectorAll('.tab-counter').forEach(el => el.innerText = total);
+        const tabHistory = document.getElementById('tabCounterHistory');
+        if (tabHistory) tabHistory.innerText = open;
+        const tabClosed = document.getElementById('tabCounterClosed');
+        if (tabClosed) tabClosed.innerText = closed;
+        const tabActioned = document.getElementById('tabCounterActioned');
+        if (tabActioned) tabActioned.innerText = actioned;
+
+        const kpiClosed = document.getElementById('kpiClosedCount');
+        if (kpiClosed) kpiClosed.innerText = closed;
+        const kpiDec = document.getElementById('kpiDecisionsCount');
+        if (kpiDec) kpiDec.innerText = actioned;
+        const bannerClosed = document.getElementById('closedBannerCount');
+        if (bannerClosed) bannerClosed.innerText = closed;
+        const bannerActioned = document.getElementById('actionedBannerCount');
+        if (bannerActioned) bannerActioned.innerText = actioned;
+
         const metricValues = document.querySelectorAll('.metric-cell .metric-value');
-        if (metricValues.length >= 5) {
+        if (metricValues.length >= 6) {
             metricValues[0].innerText = total;
             metricValues[1].innerText = red;
             metricValues[2].innerText = yellow;
             metricValues[3].innerText = green;
-            metricValues[4].innerText = actioned;
+            metricValues[4].innerText = closed;
+            metricValues[5].innerText = actioned;
         }
     }
 
-    function renderHistoryRows(rows, user) {
-        const wrapper = document.getElementById('historyTableWrapper');
-        if (!wrapper) return;
+    function addClosedRowToClosedSection(tr) {
+        const closedTableBody = document.getElementById('closedTableBody');
+        const closedTableContainer = document.getElementById('closedTableContainer');
+        const closedEmptyState = document.getElementById('closedEmptyState');
+        if (!closedTableBody) return;
+
+        if (closedTableContainer) closedTableContainer.style.display = '';
+        if (closedEmptyState) closedEmptyState.style.display = 'none';
+
+        const link = tr.querySelector('.pr-title-link');
+        const prTarget = link ? link.getAttribute('data-pr') : null;
+        if (prTarget) {
+            const existing = Array.from(closedTableBody.querySelectorAll('.pr-title-link'))
+                .find(el => el.getAttribute('data-pr') === prTarget);
+            if (existing) return;
+        }
+
+        const clone = tr.cloneNode(true);
+        clone.style.display = '';
+        clone.setAttribute('data-closed', 'true');
+        clone.setAttribute('data-actioned', 'true');
+        clone.classList.add('closed-pr-row');
+
+        const statusCell = clone.querySelector('.status-cell');
+        if (statusCell) {
+            statusCell.innerHTML = `
+                <span class="badge-closed">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="15" y1="9" x2="9" y2="15"></line>
+                        <line x1="9" y1="9" x2="15" y2="15"></line>
+                    </svg>
+                    <span>CLOSED</span>
+                </span>
+            `;
+        }
+
+        const actionsGroup = clone.querySelector('.action-button-group');
+        if (actionsGroup) {
+            const detailsBtn = actionsGroup.querySelector('.action-btn-details');
+            actionsGroup.innerHTML = '';
+            if (detailsBtn) actionsGroup.appendChild(detailsBtn);
+        }
+
+        closedTableBody.insertBefore(clone, closedTableBody.firstChild);
+    }
+
+    function renderClosedTableRows(rows) {
+        const closedBody = document.getElementById('closedTableBody');
+        const closedContainer = document.getElementById('closedTableContainer');
+        const closedEmpty = document.getElementById('closedEmptyState');
+        if (!closedBody) return;
 
         if (!rows || rows.length === 0) {
-            wrapper.innerHTML = `
-                <div id="emptyContainer" class="table-container">
-                    <div class="empty-state">
-                        <div class="empty-icon" aria-hidden="true">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                <polyline points="14 2 14 8 20 8"></polyline>
-                                <line x1="16" y1="13" x2="8" y2="13"></line>
-                                <line x1="16" y1="17" x2="8" y2="17"></line>
-                                <polyline points="10 9 9 9 8 9"></polyline>
-                            </svg>
-                        </div>
-                        <h3 class="empty-title">${user ? 'No PRs analyzed yet for @' + escapeHtml(user) : 'No PRs analyzed yet.'}</h3>
-                        <p class="empty-description">${user ? 'No pull requests analyzed for <strong>@' + escapeHtml(user) + '</strong> yet. Trigger a sync or run an on-demand triage to begin automated code analysis.' : 'Enter your GitHub username above and click <strong>Switch / Load</strong> to view your PR triage history.'}</p>
-                    </div>
-                </div>
-            `;
+            closedBody.innerHTML = '';
+            if (closedContainer) closedContainer.style.display = 'none';
+            if (closedEmpty) closedEmpty.style.display = 'block';
             return;
         }
 
-        let rowsHtml = '';
+        if (closedContainer) closedContainer.style.display = '';
+        if (closedEmpty) closedEmpty.style.display = 'none';
+
+        let html = '';
         rows.forEach(r => {
+            const hasBugs = r.bugFlag || (r.findingsJson && r.findingsJson.includes('"category":"BUG_DETECTION"'));
             const repBadge = r.authorReputation ? `
                 <span class="rep-pill ${escapeHtml(r.authorReputation)}" title="${escapeHtml(r.authorReputationDetail || '')}">
                     ${escapeHtml(r.authorReputation.replace(/_/g, ' '))}
                 </span>
             ` : '';
-
             const diffPreview = (r.changeSummaryBefore || r.changeSummaryAfter) ? `
                 <div class="code-diff-preview">
                     ${r.changeSummaryBefore ? `<div class="diff-before-pill"><span class="badge-prev">Was</span> <span>${escapeHtml(r.changeSummaryBefore)}</span></div>` : ''}
@@ -2783,50 +3297,8 @@
                 </div>
             ` : `<div class="summary-clamp" title="${escapeHtml(r.fullSummary || r.summary || '')}">${escapeHtml(r.summary || '')}</div>`;
 
-            const actionButtons = `
-                <span class="action-button-group">
-                    ${r.actionTaken ? `
-                        <span class="badge-completed" style="margin-right: 4px; padding: 3px 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;" title="Triage decision applied">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
-                            <span>${escapeHtml(r.status || ('ACTION' + 'ED'))}</span>
-                        </span>
-                    ` : ''}
-                    <button class="action-btn action-btn-details"
-                            data-title="${escapeHtml(r.title || '')}"
-                            data-pr="${escapeHtml(r.owner + '/' + r.repo + ' #' + r.prNumber)}"
-                            data-tier="${escapeHtml(r.tier || 'GREEN')}"
-                            data-sec="${r.securityFlag ? 'true' : 'false'}"
-                            data-summary="${escapeHtml(r.fullSummary || r.summary || '')}"
-                            data-findings="${escapeHtml(r.findingsJson || '[]')}"
-                            data-author="${escapeHtml(r.author || '')}"
-                            data-rep="${escapeHtml(r.authorReputation || '')}"
-                            data-repdetail="${escapeHtml(r.authorReputationDetail || '')}"
-                            data-repocontext="${escapeHtml(r.repoContext || '')}"
-                            data-before="${escapeHtml(r.changeSummaryBefore || '')}"
-                            data-after="${escapeHtml(r.changeSummaryAfter || '')}"
-                            data-approve="${escapeHtml(r.approveUrl || '')}"
-                            data-changes="${escapeHtml(r.changesUrl || '')}"
-                            data-close="${escapeHtml(r.closeUrl || '')}"
-                            onclick="openPrModal(this)"
-                            title="View full AI assessment and findings">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <line x1="12" y1="16" x2="12" y2="12"></line>
-                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                        </svg>
-                        <span>Details</span>
-                    </button>
-                    ${r.approveUrl ? `<a class="action-btn action-btn-approve" href="${escapeHtml(r.approveUrl)}" onclick="executeRowAction(this, event, 'approve')" title="Approve pull request"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Approve</span></a>` : ''}
-                    ${r.changesUrl ? `<a class="action-btn action-btn-changes" href="${escapeHtml(r.changesUrl)}" onclick="executeRowAction(this, event, 'request-changes')" title="Request changes"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg><span>Changes</span></a>` : ''}
-                    ${r.closeUrl ? `<a class="action-btn action-btn-reject" href="${escapeHtml(r.closeUrl)}" onclick="executeRowAction(this, event, 'close')" title="Close PR"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg><span>Close</span></a>` : ''}
-                </span>
-            `;
-
-            const hasBugs = r.bugFlag || (r.findingsJson && r.findingsJson.includes('"category":"BUG_DETECTION"'));
-            rowsHtml += `
-                <tr data-tier="${escapeHtml(r.tier || 'GREEN')}" data-sec="${r.securityFlag ? 'true' : 'false'}" data-bug="${hasBugs ? 'true' : 'false'}" data-actioned="${r.actionTaken ? 'true' : 'false'}" class="pr-row">
+            html += `
+                <tr data-tier="${escapeHtml(r.tier || 'GREEN')}" data-sec="${r.securityFlag ? 'true' : 'false'}" data-bug="${hasBugs ? 'true' : 'false'}" data-actioned="true" data-closed="true" class="pr-row closed-pr-row">
                     <td>
                         <span class="tier-badge ${escapeHtml(r.tier || 'GREEN')}">${escapeHtml(r.tier || 'GREEN')}</span>
                         ${r.securityFlag ? '<div><span class="sec-tag">🔒 Security</span></div>' : ''}
@@ -2850,7 +3322,7 @@
                                data-approve="${escapeHtml(r.approveUrl || '')}"
                                data-changes="${escapeHtml(r.changesUrl || '')}"
                                data-close="${escapeHtml(r.closeUrl || '')}"
-                               title="Click to view full PR triage assessment">${escapeHtml(r.title || 'PR #' + r.prNumber)}</a>
+                               title="Click to view full PR-Lens assessment">${escapeHtml(r.title || 'PR #' + r.prNumber)}</a>
                             <a href="https://github.com/${escapeHtml(r.owner)}/${escapeHtml(r.repo)}/pull/${r.prNumber}" target="_blank" rel="noopener noreferrer" class="github-ext-link" title="Open on GitHub (external)">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
@@ -2871,7 +3343,190 @@
                     <td class="table-summary">${diffPreview}</td>
                     <td style="text-align: center;"><span class="files-badge">${r.filesChangedCount || 0} files</span></td>
                     <td class="status-cell">
-                        ${r.actionTaken ? ('<span class="badge-completed">' + 'ACTION' + 'ED</span>') : `<span class="badge-new">${escapeHtml(r.status || 'NEW')}</span>`}
+                        <span class="badge-closed">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="15" y1="9" x2="9" y2="15"></line>
+                                <line x1="9" y1="9" x2="15" y2="15"></line>
+                            </svg>
+                            <span>CLOSED</span>
+                        </span>
+                    </td>
+                    <td class="actions-cell">
+                        <span class="action-button-group">
+                            <button class="action-btn action-btn-details"
+                                    data-title="${escapeHtml(r.title || '')}"
+                                    data-pr="${escapeHtml(r.owner + '/' + r.repo + ' #' + r.prNumber)}"
+                                    data-tier="${escapeHtml(r.tier || 'GREEN')}"
+                                    data-sec="${r.securityFlag ? 'true' : 'false'}"
+                                    data-summary="${escapeHtml(r.fullSummary || r.summary || '')}"
+                                    data-findings="${escapeHtml(r.findingsJson || '[]')}"
+                                    data-author="${escapeHtml(r.author || '')}"
+                                    data-rep="${escapeHtml(r.authorReputation || '')}"
+                                    data-repdetail="${escapeHtml(r.authorReputationDetail || '')}"
+                                    data-repocontext="${escapeHtml(r.repoContext || '')}"
+                                    data-before="${escapeHtml(r.changeSummaryBefore || '')}"
+                                    data-after="${escapeHtml(r.changeSummaryAfter || '')}"
+                                    data-approve="${escapeHtml(r.approveUrl || '')}"
+                                    data-changes="${escapeHtml(r.changesUrl || '')}"
+                                    data-close="${escapeHtml(r.closeUrl || '')}"
+                                    onclick="openPrModal(this)"
+                                    title="View full PR-Lens assessment and findings">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                </svg>
+                                <span>Details</span>
+                            </button>
+                        </span>
+                    </td>
+                </tr>
+            `;
+        });
+        closedBody.innerHTML = html;
+    }
+
+    function renderHistoryRows(rows, user) {
+        const wrapper = document.getElementById('historyTableWrapper');
+        if (!wrapper) return;
+
+        if (!rows || rows.length === 0) {
+            wrapper.innerHTML = `
+                <div id="emptyContainer" class="table-container">
+                    <div class="empty-state">
+                        <div class="empty-icon" aria-hidden="true">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="16" y1="13" x2="8" y2="13"></line>
+                                <line x1="16" y1="17" x2="8" y2="17"></line>
+                                <polyline points="10 9 9 9 8 9"></polyline>
+                            </svg>
+                        </div>
+                        <h3 class="empty-title">${user ? 'No PRs analyzed yet for @' + escapeHtml(user) : 'No PRs analyzed yet.'}</h3>
+                        <p class="empty-description">${user ? 'No pull requests analyzed for <strong>@' + escapeHtml(user) + '</strong> yet. Trigger a sync or run an on-demand PR-Lens review to begin automated code analysis.' : 'Enter your GitHub username above and click <strong>Switch / Load</strong> to view your PR-Lens history.'}</p>
+                    </div>
+                </div>
+            `;
+            renderClosedTableRows([]);
+            return;
+        }
+
+        let rowsHtml = '';
+        rows.forEach(r => {
+            const isClosed = (r.closed === true || r.status === 'CLOSED' || r.actionType === 'close' || r.actionType === 'reject');
+            const repBadge = r.authorReputation ? `
+                <span class="rep-pill ${escapeHtml(r.authorReputation)}" title="${escapeHtml(r.authorReputationDetail || '')}">
+                    ${escapeHtml(r.authorReputation.replace(/_/g, ' '))}
+                </span>
+            ` : '';
+
+            const diffPreview = (r.changeSummaryBefore || r.changeSummaryAfter) ? `
+                <div class="code-diff-preview">
+                    ${r.changeSummaryBefore ? `<div class="diff-before-pill"><span class="badge-prev">Was</span> <span>${escapeHtml(r.changeSummaryBefore)}</span></div>` : ''}
+                    ${r.changeSummaryAfter ? `<div class="diff-after-pill"><span class="badge-new-code">Now</span> <span>${escapeHtml(r.changeSummaryAfter)}</span></div>` : ''}
+                </div>
+            ` : `<div class="summary-clamp" title="${escapeHtml(r.fullSummary || r.summary || '')}">${escapeHtml(r.summary || '')}</div>`;
+
+            const actionButtons = `
+                <span class="action-button-group">
+                    ${isClosed ? `
+                        <span class="badge-closed" style="margin-right: 4px; padding: 3px 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;" title="Closed pull request">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="15" y1="9" x2="9" y2="15"></line>
+                                <line x1="9" y1="9" x2="15" y2="15"></line>
+                            </svg>
+                            <span>CLOSED</span>
+                        </span>
+                    ` : (r.actionTaken ? `
+                        <span class="badge-completed" style="margin-right: 4px; padding: 3px 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;" title="Triage decision applied">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span>${escapeHtml(r.status || ('ACTION' + 'ED'))}</span>
+                        </span>
+                    ` : '')}
+                    <button class="action-btn action-btn-details"
+                            data-title="${escapeHtml(r.title || '')}"
+                            data-pr="${escapeHtml(r.owner + '/' + r.repo + ' #' + r.prNumber)}"
+                            data-tier="${escapeHtml(r.tier || 'GREEN')}"
+                            data-sec="${r.securityFlag ? 'true' : 'false'}"
+                            data-summary="${escapeHtml(r.fullSummary || r.summary || '')}"
+                            data-findings="${escapeHtml(r.findingsJson || '[]')}"
+                            data-author="${escapeHtml(r.author || '')}"
+                            data-rep="${escapeHtml(r.authorReputation || '')}"
+                            data-repdetail="${escapeHtml(r.authorReputationDetail || '')}"
+                            data-repocontext="${escapeHtml(r.repoContext || '')}"
+                            data-before="${escapeHtml(r.changeSummaryBefore || '')}"
+                            data-after="${escapeHtml(r.changeSummaryAfter || '')}"
+                            data-approve="${escapeHtml(r.approveUrl || '')}"
+                            data-changes="${escapeHtml(r.changesUrl || '')}"
+                            data-close="${escapeHtml(r.closeUrl || '')}"
+                            onclick="openPrModal(this)"
+                            title="View full PR-Lens assessment and findings">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                        <span>Details</span>
+                    </button>
+                    ${(!isClosed && r.approveUrl) ? `<a class="action-btn action-btn-approve" href="${escapeHtml(r.approveUrl)}" onclick="executeRowAction(this, event, 'approve')" title="Approve pull request"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Approve</span></a>` : ''}
+                    ${(!isClosed && r.changesUrl) ? `<a class="action-btn action-btn-changes" href="${escapeHtml(r.changesUrl)}" onclick="executeRowAction(this, event, 'request-changes')" title="Request changes"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg><span>Changes</span></a>` : ''}
+                    ${(!isClosed && r.closeUrl) ? `<a class="action-btn action-btn-reject" href="${escapeHtml(r.closeUrl)}" onclick="executeRowAction(this, event, 'close')" title="Close PR"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg><span>Close</span></a>` : ''}
+                </span>
+            `;
+
+            const hasBugs = r.bugFlag || (r.findingsJson && r.findingsJson.includes('"category":"BUG_DETECTION"'));
+            rowsHtml += `
+                <tr data-tier="${escapeHtml(r.tier || 'GREEN')}" data-sec="${r.securityFlag ? 'true' : 'false'}" data-bug="${hasBugs ? 'true' : 'false'}" data-actioned="${r.actionTaken ? 'true' : 'false'}" data-closed="${isClosed ? 'true' : 'false'}" style="${isClosed ? 'display: none;' : ''}" class="pr-row">
+                    <td>
+                        <span class="tier-badge ${escapeHtml(r.tier || 'GREEN')}">${escapeHtml(r.tier || 'GREEN')}</span>
+                        ${r.securityFlag ? '<div><span class="sec-tag">🔒 Security</span></div>' : ''}
+                        ${hasBugs ? '<div><span class="bug-tag">🐛 Code Bug</span></div>' : ''}
+                    </td>
+                    <td>
+                        <div class="pr-title-row">
+                            <a href="javascript:void(0)" onclick="openPrModal(this)" class="pr-title-link"
+                               data-title="${escapeHtml(r.title || '')}"
+                               data-pr="${escapeHtml(r.owner + '/' + r.repo + ' #' + r.prNumber)}"
+                               data-tier="${escapeHtml(r.tier || 'GREEN')}"
+                               data-sec="${r.securityFlag ? 'true' : 'false'}"
+                               data-summary="${escapeHtml(r.fullSummary || r.summary || '')}"
+                               data-findings="${escapeHtml(r.findingsJson || '[]')}"
+                               data-author="${escapeHtml(r.author || '')}"
+                               data-rep="${escapeHtml(r.authorReputation || '')}"
+                               data-repdetail="${escapeHtml(r.authorReputationDetail || '')}"
+                               data-repocontext="${escapeHtml(r.repoContext || '')}"
+                               data-before="${escapeHtml(r.changeSummaryBefore || '')}"
+                               data-after="${escapeHtml(r.changeSummaryAfter || '')}"
+                               data-approve="${escapeHtml(r.approveUrl || '')}"
+                               data-changes="${escapeHtml(r.changesUrl || '')}"
+                               data-close="${escapeHtml(r.closeUrl || '')}"
+                               title="Click to view full PR-Lens assessment">${escapeHtml(r.title || 'PR #' + r.prNumber)}</a>
+                            <a href="https://github.com/${escapeHtml(r.owner)}/${escapeHtml(r.repo)}/pull/${r.prNumber}" target="_blank" rel="noopener noreferrer" class="github-ext-link" title="Open on GitHub (external)">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                    <polyline points="15 3 21 3 21 9"></polyline>
+                                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                                </svg>
+                            </a>
+                        </div>
+                        <div class="pr-metadata">
+                            <span class="repo-tag">${escapeHtml(r.owner)}/${escapeHtml(r.repo)} #${r.prNumber}</span>
+                            <span>&bull;</span>
+                            <span>@${escapeHtml(r.author || 'unknown')}</span>
+                            ${repBadge}
+                            <span>&bull;</span>
+                            <span>${escapeHtml(r.createdAt ? new Date(r.createdAt).toLocaleDateString() : 'recently')}</span>
+                        </div>
+                    </td>
+                    <td class="table-summary">${diffPreview}</td>
+                    <td style="text-align: center;"><span class="files-badge">${r.filesChangedCount || 0} files</span></td>
+                    <td class="status-cell">
+                        ${isClosed ? '<span class="badge-closed">CLOSED</span>' : (r.actionTaken ? ('<span class="badge-completed">' + 'ACTION' + 'ED</span>') : `<span class="badge-new">${escapeHtml(r.status || 'NEW')}</span>`)}
                     </td>
                     <td class="actions-cell">${actionButtons}</td>
                 </tr>
@@ -2880,7 +3535,7 @@
 
         wrapper.innerHTML = `
             <div id="tableContainer" class="table-container">
-                <table class="data-table" aria-label="Pull Request Triage History">
+                <table class="data-table" aria-label="PR-Lens History">
                     <thead>
                     <tr>
                         <th style="width: 120px;">Priority & Risk</th>
@@ -2897,6 +3552,9 @@
                 </table>
             </div>
         `;
+
+        const closedList = rows.filter(r => (r.closed === true || r.status === 'CLOSED' || r.actionType === 'close' || r.actionType === 'reject'));
+        renderClosedTableRows(closedList);
         filterHistory();
     }
 
@@ -2961,29 +3619,66 @@
             const text = await res.text();
 
             if (res.ok) {
+                const isClose = (actionType === 'close');
+
                 if (tr) {
                     tr.setAttribute('data-actioned', 'true');
+                    if (isClose) {
+                        tr.setAttribute('data-closed', 'true');
+                    }
                     const statusCell = tr.querySelector('.status-cell');
                     if (statusCell) {
-                        statusCell.innerHTML = '<span class="badge-completed">' + 'ACTION' + 'ED</span>';
+                        if (isClose) {
+                            statusCell.innerHTML = `
+                                <span class="badge-closed">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="15" y1="9" x2="9" y2="15"></line>
+                                        <line x1="9" y1="9" x2="15" y2="15"></line>
+                                    </svg>
+                                    <span>CLOSED</span>
+                                </span>
+                            `;
+                        } else {
+                            statusCell.innerHTML = '<span class="badge-completed">' + 'ACTION' + 'ED</span>';
+                        }
                     }
                 }
 
                 if (actionsCell) {
                     const group = actionsCell.querySelector('.action-button-group');
-                    if (group && !group.querySelector('.badge-completed')) {
-                        const badge = document.createElement('span');
-                        badge.className = 'badge-completed';
-                        badge.style.cssText = 'margin-right: 4px; padding: 3px 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;';
-                        badge.title = 'Triage decision applied';
-                        badge.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg><span>` + 'ACTION' + `ED</span>`;
-                        group.insertBefore(badge, group.firstChild);
+                    if (group) {
+                        if (isClose) {
+                            const oldBadge = group.querySelector('.badge-completed') || group.querySelector('.badge-closed');
+                            if (oldBadge) oldBadge.remove();
+                            const badge = document.createElement('span');
+                            badge.className = 'badge-closed';
+                            badge.style.cssText = 'margin-right: 4px; padding: 3px 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;';
+                            badge.title = 'Closed pull request';
+                            badge.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg><span>CLOSED</span>`;
+                            group.insertBefore(badge, group.firstChild);
+
+                            const approveBtn = group.querySelector('.action-btn-approve');
+                            if (approveBtn) approveBtn.remove();
+                            const changesBtn = group.querySelector('.action-btn-changes');
+                            if (changesBtn) changesBtn.remove();
+                            const closeBtn = group.querySelector('.action-btn-reject');
+                            if (closeBtn) closeBtn.remove();
+                        } else if (!group.querySelector('.badge-completed')) {
+                            const badge = document.createElement('span');
+                            badge.className = 'badge-completed';
+                            badge.style.cssText = 'margin-right: 4px; padding: 3px 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;';
+                            badge.title = 'Triage decision applied';
+                            badge.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg><span>` + 'ACTION' + `ED</span>`;
+                            group.insertBefore(badge, group.firstChild);
+                        }
                     }
                 }
 
                 element.innerHTML = originalContent;
                 element.style.pointerEvents = '';
 
+                // Increment decisions counters
                 const kpiDec = document.getElementById('kpiDecisionsCount');
                 if (kpiDec) {
                     const cur = parseInt(kpiDec.innerText, 10) || 0;
@@ -3000,8 +3695,44 @@
                     bannerDec.innerText = cur + 1;
                 }
 
-                let friendlyAction = actionType ? actionType.toUpperCase() : 'ACTION';
-                showToast('Action Completed', `PR decision applied: ${friendlyAction}. All actions remain accessible.`, 'success');
+                if (isClose) {
+                    // Update Closed counters
+                    const kpiClosed = document.getElementById('kpiClosedCount');
+                    if (kpiClosed) {
+                        const cur = parseInt(kpiClosed.innerText, 10) || 0;
+                        kpiClosed.innerText = cur + 1;
+                    }
+                    const subnavClosed = document.getElementById('tabCounterClosed');
+                    if (subnavClosed) {
+                        const cur = parseInt(subnavClosed.innerText, 10) || 0;
+                        subnavClosed.innerText = cur + 1;
+                    }
+                    const bannerClosed = document.getElementById('closedBannerCount');
+                    if (bannerClosed) {
+                        const cur = parseInt(bannerClosed.innerText, 10) || 0;
+                        bannerClosed.innerText = cur + 1;
+                    }
+
+                    // Decrement active PR counter
+                    const tabHistory = document.getElementById('tabCounterHistory');
+                    if (tabHistory) {
+                        const cur = parseInt(tabHistory.innerText, 10) || 0;
+                        if (cur > 0) tabHistory.innerText = cur - 1;
+                    }
+
+                    // Add to Closed section
+                    if (tr) {
+                        addClosedRowToClosedSection(tr);
+                    }
+
+                    // Re-apply filter so row is immediately removed from the "All" section!
+                    filterHistory();
+
+                    showToast('Request Closed', 'Pull request marked closed and moved to the Closed section.', 'success');
+                } else {
+                    let friendlyAction = actionType ? actionType.toUpperCase() : 'ACTION';
+                    showToast('Action Completed', `PR decision applied: ${friendlyAction}. All actions remain accessible.`, 'success');
+                }
             } else {
                 let msg = 'Server returned status ' + res.status;
                 const match = text.match(/<h2>(.*?)<\/h2>/i);
