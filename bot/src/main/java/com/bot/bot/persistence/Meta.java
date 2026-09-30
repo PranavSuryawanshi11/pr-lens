@@ -11,7 +11,8 @@ import lombok.Data;
 @Data
 public class Meta {
     @Id
+    @Column(name = "\"key\"")
     private String key;
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "\"value\"", columnDefinition = "TEXT")
     private String value;
 }

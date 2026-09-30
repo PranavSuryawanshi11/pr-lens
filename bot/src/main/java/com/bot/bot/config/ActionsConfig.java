@@ -1,7 +1,6 @@
 package com.bot.bot.config;
 
 import com.bot.bot.actions.TokenService;
-import com.bot.bot.config.ConfigService;
 import com.bot.bot.email.EmailTemplate;
 import com.bot.bot.email.MailService;
 import com.bot.bot.email.ThresholdAlertService;
@@ -13,6 +12,7 @@ import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -62,7 +62,10 @@ public class ActionsConfig {
     @Bean
     public ThresholdAlertService thresholdAlertService(PrAnalysisRepository prAnalysisRepository,
                                                         MailService mailService, ConfigService configService,
-                                                        EmailTemplate emailTemplate) {
-        return new ThresholdAlertService(prAnalysisRepository, mailService, configService, emailTemplate);
+                                                        EmailTemplate emailTemplate,
+                                                        @Autowired(required = false) com.bot.bot.github.GitHubApiClient gitHubApiClient,
+                                                        @Autowired(required = false) com.bot.bot.persistence.UserProfileRepository userProfileRepository) {
+        ConfigService effectiveConfigService = configService != null ? configService : this.configService;
+        return new ThresholdAlertService(prAnalysisRepository, mailService, effectiveConfigService, emailTemplate, gitHubApiClient, userProfileRepository);
     }
 }

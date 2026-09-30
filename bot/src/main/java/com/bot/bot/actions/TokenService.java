@@ -33,7 +33,8 @@ public class TokenService {
 
     public TokenService(AppProperties props, MetaRepository metaRepository) {
         this.secret = props.getActionSecret();
-        this.baseUrl = props.getBaseUrl();
+        String b = props.getBaseUrl();
+        this.baseUrl = (b != null && !b.isBlank()) ? b.replaceAll("/+$", "") : "http://localhost:8080";
         this.expirySeconds = 30L * 60; // 30 minutes
         this.metaRepository = metaRepository;
     }
@@ -57,7 +58,7 @@ public class TokenService {
             return ""; // actions not configured
         }
         String token = generate(owner, repo, prNumber, action);
-        String base = baseUrl != null ? baseUrl : "";
+        String base = (baseUrl != null && !baseUrl.isBlank()) ? baseUrl.replaceAll("/+$", "") : "";
         return base + "/action?token=" + token + "&do=" + action;
     }
 
