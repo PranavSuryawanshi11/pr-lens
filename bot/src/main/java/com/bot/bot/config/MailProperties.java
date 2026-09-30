@@ -15,6 +15,7 @@ public class MailProperties {
     private String username;
     private String password;
     private String from;
+    private String senderName = "PR-Triage";
     private String digestCron = "0 0 18 * * *";
     private List<String> maintainerEmails = new ArrayList<>();
 }

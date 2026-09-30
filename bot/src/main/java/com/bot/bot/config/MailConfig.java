@@ -22,16 +22,31 @@ public class MailConfig {
     @ConditionalOnProperty(prefix = "app.mail", name = "enabled", havingValue = "true")
     public JavaMailSender javaMailSender(MailProperties props) {
         JavaMailSenderImpl sender = new JavaMailSenderImpl();
-        sender.setHost(props.getHost());
-        sender.setPort(props.getPort());
+        String host = (props.getHost() != null && !props.getHost().isBlank()) ? props.getHost() : "smtp.gmail.com";
+        int port = props.getPort() > 0 ? props.getPort() : 587;
+
+        sender.setHost(host);
+        sender.setPort(port);
         sender.setUsername(props.getUsername());
         sender.setPassword(props.getPassword());
         sender.setDefaultEncoding("UTF-8");
+
         Properties javaMail = new Properties();
         javaMail.put("mail.transport.protocol", "smtp");
         javaMail.put("mail.smtp.auth", props.getUsername() != null && !props.getUsername().isBlank());
         javaMail.put("mail.smtp.starttls.enable", "true");
-        // ponytail: Gmail :587 requires STARTTLS. If switching to :465, also add mail.smtp.socketFactory.port=465.
+        javaMail.put("mail.smtp.starttls.required", "false");
+        javaMail.put("mail.smtp.ssl.trust", "*");
+        javaMail.put("mail.smtp.connectiontimeout", "10000");
+        javaMail.put("mail.smtp.timeout", "10000");
+        javaMail.put("mail.smtp.writetimeout", "10000");
+
+        if (port == 465) {
+            javaMail.put("mail.smtp.ssl.enable", "true");
+            javaMail.put("mail.smtp.socketFactory.port", "465");
+            javaMail.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
+        }
+
         sender.setJavaMailProperties(javaMail);
         return sender;
     }

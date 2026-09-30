@@ -83,7 +83,7 @@ public class DigestService {
             try {
                 String body = emailTemplate.renderDigest(entry.getValue());
                 mailService.sendEmail(cfg.maintainerEmails(),
-                        "PR Triage Digest — " + entry.getValue().size() + " update(s)", body);
+                        "[PR-Triage] Daily Digest — " + entry.getValue().size() + " update(s)", body);
                 log.info("Digested {} analysis(es) for installation {}", entry.getValue().size(), entry.getKey());
                 anySent = true;
             } catch (Exception e) {
