@@ -33,7 +33,9 @@ public class ConfigService {
 
     public ResolvedConfig resolve(String installationId) {
         String digestCron = mailProperties.getDigestCron();
-        String thresholdTier = "RED";
+        String thresholdTier = (mailProperties.getThresholdTier() != null && !mailProperties.getThresholdTier().isBlank())
+                ? mailProperties.getThresholdTier()
+                : "GREEN";
         boolean labelsEnabled = true;
         boolean emailEnabled = mailProperties.isEnabled();
         boolean actionsEnabled = appProperties.getActionSecret() != null && !appProperties.getActionSecret().isBlank();

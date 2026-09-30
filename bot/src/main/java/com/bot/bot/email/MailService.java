@@ -37,7 +37,7 @@ public class MailService {
         if (!isEnabled()) {
             String msg = "SMTP is disabled or not configured. To enable live delivery, ensure MAIL_ENABLED=true and Gmail credentials in bot/.env";
             log.info("═══════════════════════════════════════════════════════════════════");
-            log.info("📧 [PR TRIAGE EMAIL NOTIFICATION] (Local Dev / SMTP Disabled)");
+            log.info("📧 [PR-LENS EMAIL NOTIFICATION] (Local Dev / SMTP Disabled)");
             log.info("   To:      {}", (to != null && !to.isEmpty()) ? to : "[Repository Owner / Maintainers]");
             log.info("   Subject: {}", subject);
             extractAndLogActionLinks(htmlBody);
@@ -59,7 +59,7 @@ public class MailService {
             }
             String senderName = (props.getSenderName() != null && !props.getSenderName().isBlank())
                     ? props.getSenderName().trim()
-                    : "PR-Triage";
+                    : "PR-Lens";
             helper.setFrom(from, senderName);
             helper.setTo(to.toArray(new String[0]));
             helper.setSubject(subject);

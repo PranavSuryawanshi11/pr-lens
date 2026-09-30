@@ -92,6 +92,7 @@ github:
   token: ${GITHUB_TOKEN:${GH_TOKEN:}}
   app-id: ${GITHUB_APP_ID:}
   client-id: ${GITHUB_CLIENT_ID:}
+  app-slug: ${GITHUB_APP_SLUG:}
   webhook-secret: ${GITHUB_WEBHOOK_SECRET:}
   private-key-path: ${GITHUB_PRIVATE_KEY_PATH:certs/github-app.pem}
   api-url: ${GITHUB_API_URL:https://api.github.com}
@@ -124,8 +125,9 @@ app:
     host: ${MAIL_HOST:smtp.gmail.com}
     port: ${MAIL_PORT:587}
     username: ${MAIL_USERNAME:workwithpranav07@gmail.com}
-    password: ${MAIL_PASSWORD:tgkfzzuczvhukuve}
+    password: ${MAIL_PASSWORD:lwqjkvrrsxppxucz}
     from: ${MAIL_FROM:workwithpranav07@gmail.com}
-    sender-name: ${MAIL_SENDER_NAME:PR-Triage}
+    sender-name: ${MAIL_SENDER_NAME:PR-Lens}
+    threshold-tier: ${MAIL_THRESHOLD_TIER:GREEN}
     digest-cron: ${MAIL_DIGEST_CRON:0 0 18 * * *}
     maintainer-emails: ${MAIL_MAINTAINERS:pranavsuryawanshi955@gmail.com}
