@@ -1,5 +1,5 @@
 # ══════════════════════════════════════════════════════════════════════
-# Makefile for glint — the PR-triage bot.
+# Makefile for glint — the PR-Lens bot.
 #
 # A convenience layer over the Maven wrapper (bot/mvnw) and scripts/dev.sh.
 # Run `make help` (or just `make`) to see available targets.

@@ -257,12 +257,20 @@ public class ProfileApiController {
         }
 
         try {
-            thresholdAlertService.sendTriageReport(latest, List.of(targetEmail));
-            return ResponseEntity.ok(Map.of(
-                    "status", "SUCCESS",
-                    "email", targetEmail,
-                    "message", "Triage decision email sent directly to " + targetEmail + " with Approve & Reject action buttons!"
-            ));
+            var result = thresholdAlertService.sendTriageReport(latest, List.of(targetEmail), true);
+            if (result.success()) {
+                return ResponseEntity.ok(Map.of(
+                        "status", "SUCCESS",
+                        "email", targetEmail,
+                        "message", "Triage decision email sent directly to " + String.join(", ", result.recipients()) + " with Approve & Reject action buttons!"
+                ));
+            } else {
+                return ResponseEntity.status(500).body(Map.of(
+                        "status", "ERROR",
+                        "email", targetEmail,
+                        "message", "Failed to deliver email: " + result.message()
+                ));
+            }
         } catch (Exception e) {
             log.error("Failed to send test email: {}", e.getMessage(), e);
             return ResponseEntity.status(500).body(Map.of(
@@ -332,6 +340,12 @@ public class ProfileApiController {
             map.put("filesChangedCount", pr.getFilesChangedCount() != null ? pr.getFilesChangedCount() : 0);
             map.put("status", pr.getStatus() != null ? pr.getStatus() : "NEW");
             map.put("actionTaken", Boolean.TRUE.equals(pr.getActionTaken()));
+            boolean isClosed = Boolean.TRUE.equals(pr.getClosed())
+                    || "CLOSED".equalsIgnoreCase(pr.getStatus())
+                    || "close".equalsIgnoreCase(pr.getActionType())
+                    || "reject".equalsIgnoreCase(pr.getActionType());
+            map.put("closed", isClosed);
+            map.put("actionType", pr.getActionType() != null ? pr.getActionType() : (isClosed ? "close" : ""));
             String rep = pr.getAuthorReputation();
             String repDetail = pr.getAuthorReputationDetail();
             String prAuthor = pr.getAuthor();
@@ -384,6 +398,12 @@ public class ProfileApiController {
         long green = all.stream().filter(p -> "GREEN".equalsIgnoreCase(p.getTier())).count();
         long security = all.stream().filter(p -> Boolean.TRUE.equals(p.getSecurityFlag())).count();
         long actioned = all.stream().filter(p -> Boolean.TRUE.equals(p.getActionTaken())).count();
+        long closed = all.stream().filter(p ->
+                Boolean.TRUE.equals(p.getClosed())
+                || "CLOSED".equalsIgnoreCase(p.getStatus())
+                || "close".equalsIgnoreCase(p.getActionType())
+                || "reject".equalsIgnoreCase(p.getActionType())
+        ).count();
 
         Map<String, Object> stats = new LinkedHashMap<>();
         stats.put("total", all.size());
@@ -398,6 +418,10 @@ public class ProfileApiController {
         stats.put("securityCount", security);
         stats.put("actioned", actioned);
         stats.put("actionedCount", actioned);
+        stats.put("closed", closed);
+        stats.put("closedCount", closed);
+        stats.put("open", all.size() - closed);
+        stats.put("openCount", all.size() - closed);
 
         return ResponseEntity.ok(stats);
     }

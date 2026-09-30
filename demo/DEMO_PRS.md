@@ -1,6 +1,6 @@
 # Demo Pull Requests & Triage Tier Examples
 
-This document demonstrates the 3 PR triage tiers (🟢 Green, 🟡 Yellow, and 🔴 Red with Security Flag) used by the PR-Triage engine, outlining their trigger signals, analysis results, and expected maintainer experience.
+This document demonstrates the 3 PR-Lens tiers (🟢 Green, 🟡 Yellow, and 🔴 Red with Security Flag) used by the PR-Lens engine, outlining their trigger signals, analysis results, and expected maintainer experience.
 
 ---
 
@@ -84,7 +84,7 @@ This document demonstrates the 3 PR triage tiers (🟢 Green, 🟡 Yellow, and �
 - **Suggested Action:** `CONSIDER_CLOSING` ("Requires immediate review.")
 - **Security Flag:** 🔒 `true` (`[SECURITY ALERT]`)
 - **Email & Review Behavior:**
-  - Subject prefixed with `[SECURITY ALERT] [PR-Triage] ...`.
+  - Subject prefixed with `[SECURITY ALERT] [PR-Lens] ...`.
   - Displays red risk badge: `🔴 High Risk` + `🔒 ⚠ SECURITY`.
   - Prominent red callout: `🔒 Security Warning: Potential security concerns or sensitive credentials detected.`
   - Direct alert in findings: `🔴 Critical: Exposed AWS secret access key`.

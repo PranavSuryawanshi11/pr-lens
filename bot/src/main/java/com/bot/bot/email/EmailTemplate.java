@@ -45,7 +45,7 @@ public class EmailTemplate {
         return emailFrame(
             analyses.size() + " PR" + (analyses.size() == 1 ? "" : "s") + " analyzed",
             tableWrap(
-                brandHeader("PR Triage Digest") +
+                brandHeader("PR-Lens Digest") +
                 "<tr><td style=\"padding:20px 24px 24px;\">" +
                     p(analyses.size() + " pull request(s) analyzed today:", BODY, "13px", "margin:0 0 16px;") +
                     (analyses.isEmpty()
@@ -83,7 +83,7 @@ public class EmailTemplate {
 
         return emailFrame("Action Required: " + prLabel,
             tableWrap(
-                brandHeader("PR Triage & Review") +
+                brandHeader("PR-Lens Review") +
                 "<tr><td style=\"padding:18px 22px 20px;\">" +
                     twoCol(
                         vAlign(left, "", tiny("Pull Request Requiring Review", MUTED) +
@@ -396,7 +396,7 @@ public class EmailTemplate {
             + "<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\"><tr>"
             + "<td style=\"width:24px;height:22px;background:" + ACCENT + ";border-radius:4px;text-align:center;"
             + "vertical-align:middle;font-size:11px;font-weight:700;color:#fff;" + FW + "\">PR</td>"
-            + "<td style=\"padding-left:8px;font-size:14px;font-weight:700;color:#fff;\" " + FW + ">PR-Triage</td>"
+            + "<td style=\"padding-left:8px;font-size:14px;font-weight:700;color:#fff;\" " + FW + ">PR-Lens</td>"
             + "</tr></table>"
             + "</td>"
             + "<td align=\"right\" style=\"vertical-align:middle;font-size:11px;color:" + MUTED + ";" + FW + "\">"
@@ -412,7 +412,7 @@ public class EmailTemplate {
     private static String brandFooter() {
         return "<tr><td style=\"padding:10px 18px;border-top:1px solid " + BORDER + ";background:" + BG + ";text-align:center;\">"
             + "<p style=\"margin:0;font-size:11px;color:" + MUTED + ";" + FW + "\">"
-            + "Delivered by <strong style=\"color:" + BODY + "\">PR-Triage</strong> &bull; Intelligent Pull Request Review</p>"
+            + "Delivered by <strong style=\"color:" + BODY + "\">PR-Lens</strong> &bull; Intelligent Pull Request Review</p>"
             + "</td></tr>";
     }
 

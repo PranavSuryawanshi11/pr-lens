@@ -21,7 +21,7 @@ import java.io.IOException;
  */
 @Slf4j
 @RestController
-@RequestMapping("/webhook")
+@RequestMapping({"/webhook", "/api/webhook"})
 @RequiredArgsConstructor
 public class GitHubWebhookController {
 
@@ -32,7 +32,7 @@ public class GitHubWebhookController {
     private final ReviewOrchestrator reviewOrchestrator;
     private final Gson gson;
 
-    @PostMapping("/github")
+    @PostMapping({"", "/github", "/webhook"})
     public ResponseEntity<String> handleGitHubWebhook(
             HttpServletRequest request,
             @RequestHeader(value = "X-Hub-Signature-256", required = false) String signature,

@@ -34,7 +34,7 @@ class SecretsDetectionRuleTest {
         ChangeChunk chunk = ChangeChunk.builder()
                 .filePath("src/main/Config.java")
                 .startLine(1)
-                .addedLines(List.of("public final int MAX_RETRIES = 5;", "public final String APP_NAME = \"PR-Triage\";"))
+                .addedLines(List.of("public final int MAX_RETRIES = 5;", "public final String APP_NAME = \"PR-Lens\";"))
                 .build();
 
         List<Finding> findings = rule.analyze(List.of(chunk));

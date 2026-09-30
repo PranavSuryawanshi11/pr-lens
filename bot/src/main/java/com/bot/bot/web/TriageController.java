@@ -15,8 +15,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * REST API for on-demand PR triage.
- * Allows triaging any pull request on any GitHub account using GitHub REST API
+ * REST API for on-demand PR-Lens review.
+ * Allows analyzing any pull request on any GitHub account using GitHub REST API
  * without requiring pre-configured GitHub App installation.
  */
 @Slf4j

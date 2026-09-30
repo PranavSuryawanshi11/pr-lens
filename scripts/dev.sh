@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# dev.sh — developer helper for the glint PR-triage bot.
+# dev.sh — developer helper for the glint PR-Lens bot.
 #
 # A thin, dependency-checking wrapper around the Maven build and a local
 # PostgreSQL container. Every subcommand is also reachable through the root

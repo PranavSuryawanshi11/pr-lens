@@ -170,13 +170,81 @@ public class GitHubApiClient {
      * 3. Error if neither is available when an authenticated operation is strictly required.
      */
     public Mono<String> resolveAuthToken(long installationId) {
-        if (gitHubProperties.hasToken()) {
-            return Mono.just(gitHubProperties.getToken().trim());
-        }
         if (installationId > 0 && gitHubProperties.hasAppCredentials()) {
             return getInstallationToken(installationId);
         }
+        if (gitHubProperties.hasToken()) {
+            return Mono.just(gitHubProperties.getToken().trim());
+        }
         return Mono.error(new IllegalStateException("No GitHub token or App credentials configured for authenticated API call"));
+    }
+
+    /**
+     * Resolves the authentication token for a specific repository:
+     * 1. Uses explicit installationId if provided.
+     * 2. If installationId is 0, queries GitHub API using the App JWT to dynamically discover
+     *    the repository's installation ID.
+     * 3. Falls back to Personal Access Token (GITHUB_TOKEN) if no App installation is found.
+     */
+    public Mono<String> resolveAuthTokenForRepo(String owner, String repo, long installationId) {
+        if (installationId > 0 && gitHubProperties.hasAppCredentials()) {
+            return getInstallationToken(installationId);
+        }
+        if (gitHubProperties.hasAppCredentials()) {
+            return getInstallationIdForRepo(owner, repo)
+                    .flatMap(foundId -> {
+                        if (foundId > 0) {
+                            return getInstallationToken(foundId);
+                        }
+                        if (gitHubProperties.hasToken()) {
+                            return Mono.just(gitHubProperties.getToken().trim());
+                        }
+                        return Mono.error(new IllegalStateException("No GitHub App installation or GITHUB_TOKEN configured for " + owner + "/" + repo));
+                    });
+        }
+        if (gitHubProperties.hasToken()) {
+            return Mono.just(gitHubProperties.getToken().trim());
+        }
+        return Mono.error(new IllegalStateException("No GitHub token or App credentials configured for authenticated API call"));
+    }
+
+    /**
+     * Queries GitHub for the installation ID associated with a given owner/repo.
+     * GET /repos/{owner}/{repo}/installation (authenticated with App JWT).
+     */
+    public Mono<Long> getInstallationIdForRepo(String owner, String repo) {
+        if (!gitHubProperties.hasAppCredentials()) {
+            return Mono.just(0L);
+        }
+        String url = String.format("%s/repos/%s/%s/installation",
+                gitHubProperties.getApiUrl(), owner, repo);
+        try {
+            String appJwt = jwtGenerator.generateAppToken();
+            return webClient.get()
+                    .uri(url)
+                    .header("Authorization", "Bearer " + appJwt)
+                    .header("Accept", "application/vnd.github.v3+json")
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .map(jsonStr -> {
+                        try {
+                            JsonObject json = gson.fromJson(jsonStr, JsonObject.class);
+                            if (json != null && json.has("id")) {
+                                long id = json.get("id").getAsLong();
+                                log.info("Discovered GitHub App installation ID {} for {}/{}", id, owner, repo);
+                                return id;
+                            }
+                        } catch (Exception ignored) {}
+                        return 0L;
+                    })
+                    .onErrorResume(e -> {
+                        log.debug("Could not discover installation for {}/{}: {}", owner, repo, e.getMessage());
+                        return Mono.just(0L);
+                    });
+        } catch (Exception e) {
+            log.warn("Could not generate JWT to lookup installation for {}/{}: {}", owner, repo, e.getMessage());
+            return Mono.just(0L);
+        }
     }
 
     /**
@@ -187,10 +255,10 @@ public class GitHubApiClient {
                 gitHubProperties.getApiUrl(), owner, repo, prNumber);
 
         Mono<String> tokenMono;
-        if (gitHubProperties.hasToken()) {
-            tokenMono = Mono.just(gitHubProperties.getToken().trim());
-        } else if (installationId > 0 && gitHubProperties.hasAppCredentials()) {
+        if (installationId > 0 && gitHubProperties.hasAppCredentials()) {
             tokenMono = getInstallationToken(installationId).onErrorReturn("");
+        } else if (gitHubProperties.hasToken()) {
+            tokenMono = Mono.just(gitHubProperties.getToken().trim());
         } else {
             tokenMono = Mono.just("");
         }
@@ -242,11 +310,12 @@ public class GitHubApiClient {
             reviewBody.add("comments", commentArray);
         }
 
-        return resolveAuthToken(installationId)
+        return resolveAuthTokenForRepo(owner, repo, installationId)
                 .flatMap(token -> webClient.post()
                         .uri(url)
                         .header("Authorization", "Bearer " + token)
                         .header("Accept", "application/vnd.github.v3+json")
+                        .header("Content-Type", "application/json")
                         .bodyValue(reviewBody.toString())
                         .retrieve()
                         .toBodilessEntity()
@@ -266,15 +335,31 @@ public class GitHubApiClient {
         JsonObject body = new JsonObject();
         body.addProperty("state", "closed");
 
-        return resolveAuthToken(installationId)
+        return resolveAuthTokenForRepo(owner, repo, installationId)
                 .flatMap(token -> webClient.patch()
                         .uri(url)
                         .header("Authorization", "Bearer " + token)
                         .header("Accept", "application/vnd.github.v3+json")
+                        .header("Content-Type", "application/json")
                         .bodyValue(body.toString())
                         .retrieve()
                         .toBodilessEntity()
                         .then())
+                .onErrorResume(ex -> {
+                    log.warn("PATCH /pulls/{} failed ({}), attempting fallback to /issues/{}", prNumber, ex.getMessage(), prNumber);
+                    String issueUrl = String.format("%s/repos/%s/%s/issues/%d",
+                            gitHubProperties.getApiUrl(), owner, repo, prNumber);
+                    return resolveAuthTokenForRepo(owner, repo, installationId)
+                            .flatMap(token -> webClient.patch()
+                                    .uri(issueUrl)
+                                    .header("Authorization", "Bearer " + token)
+                                    .header("Accept", "application/vnd.github.v3+json")
+                                    .header("Content-Type", "application/json")
+                                    .bodyValue(body.toString())
+                                    .retrieve()
+                                    .toBodilessEntity()
+                                    .then());
+                })
                 .retryWhen(WebClientConfig.buildRetrySpec("close-pr"))
                 .doOnError(e -> log.error("Error closing PR {}/{}/PR#{} after retries",
                         owner, repo, prNumber, e));
@@ -290,11 +375,12 @@ public class GitHubApiClient {
         JsonObject comment = new JsonObject();
         comment.addProperty("body", body);
 
-        return resolveAuthToken(installationId)
+        return resolveAuthTokenForRepo(owner, repo, installationId)
                 .flatMap(token -> webClient.post()
                         .uri(url)
                         .header("Authorization", "Bearer " + token)
                         .header("Accept", "application/vnd.github.v3+json")
+                        .header("Content-Type", "application/json")
                         .bodyValue(comment.toString())
                         .retrieve()
                         .toBodilessEntity()
@@ -316,11 +402,12 @@ public class GitHubApiClient {
             labelArray.add(label);
         }
 
-        return resolveAuthToken(installationId)
+        return resolveAuthTokenForRepo(owner, repo, installationId)
                 .flatMap(token -> webClient.post()
                         .uri(url)
                         .header("Authorization", "Bearer " + token)
                         .header("Accept", "application/vnd.github.v3+json")
+                        .header("Content-Type", "application/json")
                         .bodyValue(labelArray.toString())
                         .retrieve()
                         .toBodilessEntity()
@@ -527,11 +614,12 @@ public class GitHubApiClient {
         }
         body.addProperty("merge_method", "merge");
 
-        return resolveAuthToken(installationId)
+        return resolveAuthTokenForRepo(owner, repo, installationId)
                 .flatMap(token -> webClient.put()
                         .uri(url)
                         .header("Authorization", "Bearer " + token)
                         .header("Accept", "application/vnd.github.v3+json")
+                        .header("Content-Type", "application/json")
                         .bodyValue(body.toString())
                         .retrieve()
                         .toBodilessEntity()

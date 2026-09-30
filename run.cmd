@@ -1,6 +1,6 @@
 @echo off
 rem ===========================================================================
-rem run.cmd - Windows launcher for glint PR Triage Bot (run.sh runner)
+rem run.cmd - Windows launcher for glint PR-Lens Bot (run.sh runner)
 rem ===========================================================================
 
 setlocal enabledelayedexpansion

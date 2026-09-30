@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Glint · AI GitHub PR Triage",
+  "name": "Glint · AI GitHub PR-Lens",
   "version": "1.0.0",
   "description": "Zero-config automated PR detection, AI code analysis, risk scoring, and 1-click decision actions for GitHub pull requests.",
   "permissions": [
@@ -14,7 +14,7 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Glint PR Triage"
+    "default_title": "Glint PR-Lens"
   },
   "content_scripts": [
     {

@@ -34,7 +34,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
- * End-to-end integration test suite verifying PR triage behavior,
+ * End-to-end integration test suite verifying PR-Lens behavior,
  * diff parsing, author reputation resolution, heuristics, review orchestration,
  * idempotency, secrets scanning, one-click action tokens, and on-demand triage controller.
  */
@@ -52,7 +52,7 @@ class RepoTriageIntegrationTest {
             "+++ b/test_note.md\n" +
             "@@ -0,0 +1,2 @@\n" +
             "+# Placement Preparation Hub - Verification Note\n" +
-            "+This file was added to verify automated PR triage analysis.\n";
+            "+This file was added to verify automated PR-Lens analysis.\n";
 
     private static final String LENS_DIFF =
             "diff --git a/bot/src/test/java/com/sprint/sprint/domain/TriageResultTest.java b/bot/src/test/java/com/sprint/sprint/domain/TriageResultTest.java\n" +

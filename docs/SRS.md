@@ -1,4 +1,4 @@
-# AI-Assisted PR Triage System — Solution Design Document
+# AI-Assisted PR-Lens System — Solution Design Document
 
 ## 1. Problem Statement
 

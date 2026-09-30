@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Email Notification Inspector · Glint PR Triage</title>
+    <title>Email Notification Inspector · Glint PR-Lens</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -340,7 +340,7 @@
             </div>
             <div class="meta-item">
                 <span class="meta-key">Subject Line</span>
-                <span class="meta-val" th:text="${subject}">[Triage Alert] Pull Request Requiring Review</span>
+                <span class="meta-val" th:text="${subject}">[PR-Lens Alert] Pull Request Requiring Review</span>
             </div>
             <div class="meta-item">
                 <span class="meta-key">Target Pull Request</span>
@@ -370,7 +370,7 @@
         </div>
         <h2 style="font-size: 14px; font-weight: 600; margin-bottom: 4px;">No email alert generated yet.</h2>
         <p style="font-size: 12px; color: var(--color-fg-subtle); max-width: 440px; margin: 0 auto 16px;">
-            Trigger a PR triage via the dashboard or click "Sync Now" to automatically generate an email dispatch preview.
+            Trigger a PR-Lens review via the dashboard or click "Sync Now" to automatically generate an email dispatch preview.
         </p>
         <a href="/" class="ui-btn ui-btn-primary">Return to Console Dashboard</a>
     </section>
