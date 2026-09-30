@@ -1,6 +1,5 @@
 package com.bot.bot.llm;
 
-import com.bot.bot.config.LLMProperties;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
