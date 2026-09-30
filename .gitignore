@@ -5,4 +5,19 @@ target/
 .codegraph/
 .omo/
 bot/certs/
+certs/
+*.pem
+*.key
 .swarm/
+
+# Database & Runtime Data
+data/
+bot/data/
+*.db
+*.mv.db
+*.lock.db
+
+# IDE & Editor
+.vscode/
+.idea/
+*.iml
