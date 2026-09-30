@@ -15,7 +15,6 @@ spring:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/pr_triage}
     username: ${DATABASE_USER:postgres}
     password: ${DATABASE_PASSWORD:postgres}
-    driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: ${DATABASE_POOL_SIZE:10}
       minimum-idle: ${DATABASE_MIN_IDLE:2}
@@ -25,12 +24,14 @@ spring:
       ddl-auto: update
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
         jdbc:
           lob:
             non_contextual_creation: true
     show-sql: false
     open-in-view: false
+
+  thymeleaf:
+    cache: false
 
 # ── Server ───────────────────────────────────────────────────────────
 server:
@@ -69,8 +70,8 @@ management:
         include: health,info,prometheus,metrics
   endpoint:
     health:
-      show-details: when-authorized
-      show-components: when-authorized
+      show-details: always
+      show-components: always
     prometheus:
       enabled: true
     metrics:
@@ -86,8 +87,9 @@ management:
     defaults:
       enabled: true
 
-# ── GitHub App Configuration ─────────────────────────────────────────
+# ── GitHub Configuration ─────────────────────────────────────────────
 github:
+  token: ${GITHUB_TOKEN:${GH_TOKEN:}}
   app-id: ${GITHUB_APP_ID:}
   client-id: ${GITHUB_CLIENT_ID:}
   webhook-secret: ${GITHUB_WEBHOOK_SECRET:}
@@ -110,19 +112,20 @@ llm:
 
 # ── Application Configuration ────────────────────────────────────────
 app:
-  action-secret: ${APP_ACTION_SECRET:}
-  base-url: ${APP_BASE_URL:}
+  action-secret: ${APP_ACTION_SECRET:glint-default-secret-32-chars-long-action-tokens}
+  base-url: ${APP_BASE_URL:http://localhost:8080}
   heuristics-enabled: ${HEURISTICS_ENABLED:true}
   llm-enabled: ${LLM_ENABLED:true}
   auto-approve: ${AUTO_APPROVE:false}
   inline-comments: ${INLINE_COMMENTS:true}
   review-summary-enabled: ${REVIEW_SUMMARY_ENABLED:true}
   mail:
-    enabled: ${MAIL_ENABLED:false}
-    host: ${MAIL_HOST:}
-    port: ${MAIL_PORT:25}
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
-    from: ${MAIL_FROM:}
+    enabled: ${MAIL_ENABLED:true}
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:workwithpranav07@gmail.com}
+    password: ${MAIL_PASSWORD:tgkfzzuczvhukuve}
+    from: ${MAIL_FROM:workwithpranav07@gmail.com}
+    sender-name: ${MAIL_SENDER_NAME:PR-Triage}
     digest-cron: ${MAIL_DIGEST_CRON:0 0 18 * * *}
-    maintainer-emails: ${MAIL_MAINTAINERS:}
+    maintainer-emails: ${MAIL_MAINTAINERS:pranavsuryawanshi955@gmail.com}

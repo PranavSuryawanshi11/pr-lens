@@ -53,10 +53,30 @@ have() { command -v "$1" >/dev/null 2>&1; }
 cmd_check() {
     local ok=1
 
-    if have java; then
+    # Check or auto-detect JDK 21+
+    if [ -z "${JAVA_HOME:-}" ] || ! "${JAVA_HOME}/bin/java" -version 2>&1 | grep -Eq '"(21|22|23|24|25|26|27|28|29|30)'; then
+        for candidate in \
+            "C:/Program Files/Eclipse Adoptium/jdk-25"* \
+            "C:/Program Files/Eclipse Adoptium/jdk-21"* \
+            "C:/Program Files/Java/jdk-25"* \
+            "C:/Program Files/Java/jdk-21"* \
+            "/usr/lib/jvm/java-25"* \
+            "/usr/lib/jvm/java-21"*; do
+            if [ -d "$candidate" ] && [ -x "$candidate/bin/java" ]; then
+                export JAVA_HOME="$candidate"
+                break
+            fi
+        done
+    fi
+
+    if have java || [ -n "${JAVA_HOME:-}" ]; then
         local ver
-        ver="$(java -version 2>&1 | head -1)"
-        if java -version 2>&1 | grep -Eq '"(21|22|23|24|25)'; then
+        if [ -n "${JAVA_HOME:-}" ] && [ -x "${JAVA_HOME}/bin/java" ]; then
+            ver="$("${JAVA_HOME}/bin/java" -version 2>&1 | head -1)"
+        else
+            ver="$(java -version 2>&1 | head -1)"
+        fi
+        if echo "${ver}" | grep -Eq '"(21|22|23|24|25|26|27|28|29|30)'; then
             info "Java OK: ${ver}"
         else
             warn "Java 21+ required, found: ${ver}"
@@ -181,6 +201,43 @@ cmd_clean() {
     info "Clean."
 }
 
+cmd_triage() {
+    local target="${1:-}"
+    local pr_number="${2:-}"
+
+    if [ -z "${target}" ]; then
+        error "Usage: scripts/dev.sh triage <github-pr-url>  OR  scripts/dev.sh triage <owner/repo> <pr-number>"
+        exit 1
+    fi
+
+    local query=""
+    if [[ "${target}" =~ ^https?:// ]]; then
+        query="url=${target}"
+    elif [ -n "${pr_number}" ]; then
+        local owner="${target%/*}"
+        local repo="${target#*/}"
+        query="owner=${owner}&repo=${repo}&pr=${pr_number}"
+    elif [[ "${target}" == *"#"* ]]; then
+        local full_repo="${target%#*}"
+        local pnum="${target#*#}"
+        local owner="${full_repo%/*}"
+        local repo="${full_repo#*/}"
+        query="owner=${owner}&repo=${repo}&pr=${pnum}"
+    else
+        error "Invalid arguments. Provide a full PR URL or 'owner/repo' followed by PR number."
+        exit 1
+    fi
+
+    local bot_port="${PORT:-8080}"
+    info "Querying triage API: http://localhost:${bot_port}/api/triage?${query}"
+    if have curl; then
+        curl -s "http://localhost:${bot_port}/api/triage?${query}"
+        echo ""
+    else
+        die "curl is required to execute triage request."
+    fi
+}
+
 cmd_help() {
     sed -n '2,40p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
@@ -199,6 +256,7 @@ main() {
         build)            cmd_build "$@" ;;
         test)             cmd_test "$@" ;;
         run)              cmd_run "$@" ;;
+        triage)           cmd_triage "$@" ;;
         package)          cmd_package "$@" ;;
         clean)            cmd_clean "$@" ;;
         help|-h|--help)   cmd_help ;;

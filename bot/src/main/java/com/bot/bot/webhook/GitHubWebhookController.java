@@ -55,7 +55,7 @@ public class GitHubWebhookController {
             // ── Payload size validation ─────────────────────────
             if (rawBytes.length > MAX_PAYLOAD_BYTES) {
                 log.warn("Payload too large: {} bytes (max: {})", rawBytes.length, MAX_PAYLOAD_BYTES);
-                return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+                return ResponseEntity.status(HttpStatus.CONTENT_TOO_LARGE)
                         .body("Payload exceeds maximum size of " + MAX_PAYLOAD_BYTES + " bytes");
             }
 

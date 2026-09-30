@@ -18,6 +18,14 @@ public class WebhookSignatureVerifier {
     private final GitHubProperties gitHubProperties;
 
     public boolean verifySignature(String payload, String signature) {
+        String secret = gitHubProperties.getWebhookSecret();
+        if (secret == null || secret.isBlank()) {
+            return false;
+        }
+        if (signature == null || signature.isBlank()) {
+            log.warn("Webhook secret is configured, but X-Hub-Signature-256 header is missing");
+            return false;
+        }
         try {
             String computedSignature = computeSignature(payload);
             // Constant-time comparison to prevent timing attacks
@@ -34,7 +42,7 @@ public class WebhookSignatureVerifier {
     private String computeSignature(String payload) throws Exception {
         String secret = gitHubProperties.getWebhookSecret();
         if (secret == null || secret.isEmpty()) {
-            throw new IllegalStateException("GitHub webhook secret not configured");
+            return "";
         }
 
         Mac mac = Mac.getInstance("HmacSHA256");
