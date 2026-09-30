@@ -70,17 +70,64 @@ pr-triage/
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the component map and data flow.
 
-## Build & run (summary)
+## One-Command Run (Zero Configuration)
+
+You can run the entire project with a single command without configuring a GitHub App:
 
 ```bash
-cd bot
-cp .env.example .env        # fill in GITHUB_* and LLM_* values
-# provide certs/github-app.pem (GitHub App private key)
-mvn -q spring-boot:run      # serves on :8080
+# Linux / macOS / Git Bash:
+./run.sh
+
+# Windows Command Prompt / PowerShell:
+run.cmd
 ```
 
-See the [tutorial](docs/tutorial-getting-started.md) for the full steps,
-including creating the GitHub App and pointing its webhook at `/webhook/github`.
+`run.sh` automatically:
+1. Detects and configures Java 21+ (`JAVA_HOME`).
+2. Generates `bot/.env` with safe zero-config defaults if missing.
+3. Automatically uses local PostgreSQL, starts a Docker container, or falls back to an embedded zero-config H2 database (`data/pr_triage`).
+4. Boots the Spring Boot server on `http://localhost:8080/`.
+
+---
+
+## Triage Any PR On Anyone's Account
+
+You do not need to create or configure a GitHub App or install anything on anyone's account. You can triage pull requests on **any** repository (including public repositories or your own):
+
+### 1. Via Command Line (`run.sh`):
+```bash
+# Triage any PR by full GitHub URL
+./run.sh triage https://github.com/facebook/react/pull/28000
+
+# Or by repository name and PR number
+./run.sh triage octocat/Hello-World 12
+```
+
+### 2. Via REST API (`/api/triage`):
+```bash
+curl -X POST http://localhost:8080/api/triage \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://github.com/facebook/react/pull/28000"}'
+```
+
+### 3. Authentication Modes
+- **Mode 1: Zero-Config / Public API (Tokenless)**
+  Fetches PR diffs and metadata for ANY public repository on GitHub without any token or configuration.
+- **Mode 2: Personal Access Token (PAT)**
+  Set `GITHUB_TOKEN=ghp_...` in `bot/.env` or export `GITHUB_TOKEN`.
+  Allows triaging private repositories, raises GitHub rate limits, and enables review comments and labels on repositories you have write access to.
+- **Mode 3: GitHub App (Optional)**
+  Configure `GITHUB_APP_ID`, `GITHUB_CLIENT_ID`, and `certs/github-app.pem` if you wish to run as a multi-tenant GitHub App with webhook signature validation.
+
+---
+
+## Traditional Build & Run
+
+```bash
+./run.sh test        # Run test suite
+./run.sh build       # Package application JAR
+./run.sh check       # Check environment & dependencies
+```
 
 ## License
 

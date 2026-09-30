@@ -1,0 +1,381 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Email Notification Inspector · Glint PR Triage</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --color-canvas-default: #ffffff;
+            --color-canvas-subtle: #f8fafc;
+            --color-canvas-inset: #f1f5f9;
+            --color-border-default: #e2e8f0;
+            --color-border-muted: #cbd5e1;
+
+            --color-fg-default: #0f172a;
+            --color-fg-muted: #475569;
+            --color-fg-subtle: #64748b;
+
+            --color-primary: #0969da;
+            --color-primary-hover: #0757b3;
+            --color-primary-active: #054694;
+            --color-primary-subtle: #f0f7ff;
+            --color-primary-border: #bfdbfe;
+
+            --color-success-fg: #1a7f37;
+            --color-success-bg: #dafbe1;
+            --color-success-border: #4ac26b;
+
+            --space-1: 4px;
+            --space-2: 8px;
+            --space-3: 12px;
+            --space-4: 16px;
+            --space-5: 20px;
+            --space-6: 24px;
+            --space-8: 32px;
+
+            --radius-sm: 4px;
+            --radius-md: 6px;
+            --radius-lg: 8px;
+
+            --shadow-subtle: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+            --shadow-popover: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
+
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--color-canvas-subtle);
+            color: var(--color-fg-default);
+            font-size: 13px;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── Header ── */
+        .app-topbar {
+            height: 52px;
+            background-color: var(--color-canvas-default);
+            border-bottom: 1px solid var(--color-border-default);
+            padding: 0 var(--space-6);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .brand-section {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+        }
+
+        .brand-mark {
+            width: 28px;
+            height: 28px;
+            border-radius: var(--radius-md);
+            background-color: var(--color-primary);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 13px;
+        }
+
+        .brand-text {
+            display: flex;
+            align-items: baseline;
+            gap: var(--space-2);
+        }
+
+        .brand-name {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--color-fg-default);
+        }
+
+        .brand-desc {
+            font-size: 12px;
+            color: var(--color-fg-subtle);
+            font-weight: 500;
+        }
+
+        .topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .ui-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 500;
+            height: 30px;
+            padding: 0 var(--space-3);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--color-border-default);
+            background-color: var(--color-canvas-default);
+            color: var(--color-fg-default);
+            cursor: pointer;
+            text-decoration: none;
+            transition: background-color 0.12s ease;
+            white-space: nowrap;
+        }
+
+        .ui-btn:hover {
+            background-color: var(--color-canvas-inset);
+        }
+
+        .ui-btn-primary {
+            background-color: var(--color-primary);
+            border-color: var(--color-primary);
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        .ui-btn-primary:hover {
+            background-color: var(--color-primary-hover);
+        }
+
+        /* ── Container Layout ── */
+        .preview-layout {
+            max-width: 900px;
+            width: 100%;
+            margin: 0 auto;
+            padding: var(--space-6) var(--space-4);
+            flex: 1;
+        }
+
+        /* ── Inspector Metadata Card ── */
+        .inspector-card {
+            background-color: var(--color-canvas-default);
+            border: 1px solid var(--color-border-default);
+            border-radius: var(--radius-md);
+            padding: var(--space-4);
+            margin-bottom: var(--space-5);
+            box-shadow: var(--shadow-subtle);
+        }
+
+        .inspector-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--space-3);
+            padding-bottom: var(--space-3);
+            border-bottom: 1px solid var(--color-border-default);
+        }
+
+        .inspector-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--color-fg-default);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .badge-live {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            background-color: var(--color-success-bg);
+            color: var(--color-success-fg);
+            border: 1px solid var(--color-success-border);
+        }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--space-3);
+            font-size: 12px;
+        }
+
+        .meta-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .meta-key {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--color-fg-subtle);
+        }
+
+        .meta-val {
+            color: var(--color-fg-default);
+            font-weight: 500;
+            word-break: break-all;
+        }
+
+        .meta-val.mono {
+            font-family: var(--font-mono);
+            font-size: 11px;
+        }
+
+        /* ── Framed Email Viewport ── */
+        .email-viewport-wrapper {
+            background-color: var(--color-canvas-inset);
+            border: 1px solid var(--color-border-default);
+            border-radius: var(--radius-lg);
+            padding: var(--space-6) var(--space-4);
+            display: flex;
+            justify-content: center;
+            box-shadow: var(--shadow-subtle);
+        }
+
+        .email-frame {
+            max-width: 620px;
+            width: 100%;
+            background-color: #ffffff;
+            border: 1px solid var(--color-border-default);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-popover);
+            overflow: hidden;
+        }
+
+        /* ── Empty State ── */
+        .empty-card {
+            background-color: var(--color-canvas-default);
+            border: 1px solid var(--color-border-default);
+            border-radius: var(--radius-md);
+            padding: var(--space-8) var(--space-4);
+            text-align: center;
+        }
+
+        .empty-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background-color: var(--color-canvas-inset);
+            color: var(--color-fg-subtle);
+            margin-bottom: var(--space-3);
+        }
+    </style>
+</head>
+<body>
+
+<!-- Application Topbar -->
+<header class="app-topbar" role="banner">
+    <div class="brand-section">
+        <div class="brand-mark" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="18" cy="18" r="3"></circle>
+                <circle cx="6" cy="6" r="3"></circle>
+                <path d="M13 6h3a2 2 0 0 1 2 2v7"></path>
+                <line x1="6" y1="9" x2="6" y2="21"></line>
+            </svg>
+        </div>
+        <div class="brand-text">
+            <span class="brand-name">Glint</span>
+            <span class="brand-desc">Email Dispatch Inspector</span>
+        </div>
+    </div>
+
+    <div class="topbar-actions">
+        <a href="/" class="ui-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            <span>Back to Dashboard</span>
+        </a>
+    </div>
+</header>
+
+<main class="preview-layout">
+
+    <!-- Inspector Meta Card -->
+    <section class="inspector-card" aria-label="Email Meta">
+        <div class="inspector-header">
+            <h1 class="inspector-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+                </svg>
+                <span>Email Notification Preview</span>
+            </h1>
+            <span class="badge-live">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                    <circle cx="12" cy="12" r="10"></circle>
+                </svg>
+                <span>Rendered HTML</span>
+            </span>
+        </div>
+
+        <div class="meta-grid">
+            <div class="meta-item">
+                <span class="meta-key">Recipient</span>
+                <span class="meta-val mono" th:text="${recipient != null && !recipient.isBlank() ? recipient : '—'}">—</span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-key">Subject Line</span>
+                <span class="meta-val" th:text="${subject}">[Triage Alert] Pull Request Requiring Review</span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-key">Target Pull Request</span>
+                <span class="meta-val mono" th:text="${prTarget}">twbs/bootstrap#42946</span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-key">Delivery Format</span>
+                <span class="meta-val">Multipart MIME / Responsive HTML</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Framed Email Preview -->
+    <section th:if="${hasEmail}" class="email-viewport-wrapper" aria-label="Rendered Email Viewport">
+        <div class="email-frame">
+            <div th:utext="${emailHtml}"></div>
+        </div>
+    </section>
+
+    <!-- Empty State -->
+    <section th:unless="${hasEmail}" class="empty-card">
+        <div class="empty-icon" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+            </svg>
+        </div>
+        <h2 style="font-size: 14px; font-weight: 600; margin-bottom: 4px;">No email alert generated yet.</h2>
+        <p style="font-size: 12px; color: var(--color-fg-subtle); max-width: 440px; margin: 0 auto 16px;">
+            Trigger a PR triage via the dashboard or click "Sync Now" to automatically generate an email dispatch preview.
+        </p>
+        <a href="/" class="ui-btn ui-btn-primary">Return to Console Dashboard</a>
+    </section>
+
+</main>
+
+</body>
+</html>

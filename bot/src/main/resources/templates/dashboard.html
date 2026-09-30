@@ -2,487 +2,3068 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>glint · PR Triage</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Glint · Automated PR Triage & Review Console</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
         :root {
-            --indigo:   #4f46e5;
-            --indigo-bg: #eef2ff;
-            --slate-50:  #f8fafc;
-            --slate-100: #f1f5f9;
-            --slate-200: #e2e8f0;
-            --slate-300: #cbd5e1;
-            --slate-400: #94a3b8;
-            --slate-500: #64748b;
-            --slate-600: #475569;
-            --slate-700: #334155;
-            --slate-800: #1e293b;
-            --slate-900: #0f172a;
-            --red:     #dc2626;
-            --red-bg:  #fef2f2;
-            --yellow:  #d97706;
-            --yellow-bg:#fffbeb;
-            --green:   #16a34a;
-            --green-bg: #f0fdf4;
-            --accent:  #e94560;
-            --accent-dim: #b91c3a;
-            --radius:  8px;
-            --radius-lg: 12px;
+            /* ── Color Palette (GitHub Enterprise / Stripe Design System) ── */
+            --color-canvas-default: #ffffff;
+            --color-canvas-subtle: #f8fafc;
+            --color-canvas-inset: #f1f5f9;
+            --color-border-default: #e2e8f0;
+            --color-border-muted: #cbd5e1;
+
+            --color-fg-default: #0f172a;
+            --color-fg-muted: #475569;
+            --color-fg-subtle: #64748b;
+            --color-fg-on-emphasis: #ffffff;
+
+            --color-primary: #0969da;
+            --color-primary-hover: #0757b3;
+            --color-primary-active: #054694;
+            --color-primary-subtle: #f0f7ff;
+            --color-primary-border: #bfdbfe;
+
+            --color-danger-fg: #cf222e;
+            --color-danger-bg: #ffebe9;
+            --color-danger-border: #ff8182;
+            --color-danger-solid: #d1242f;
+
+            --color-warning-fg: #9a6700;
+            --color-warning-bg: #fff8c5;
+            --color-warning-border: #d4a72c;
+
+            --color-success-fg: #1a7f37;
+            --color-success-bg: #dafbe1;
+            --color-success-border: #4ac26b;
+            --color-success-solid: #1f883d;
+
+            --color-neutral-fg: #57606a;
+            --color-neutral-bg: #f6f8fa;
+            --color-neutral-border: #d0d7de;
+
+            /* ── Layout & Typography Scale (4px/8px System) ── */
+            --space-1: 4px;
+            --space-2: 8px;
+            --space-3: 12px;
+            --space-4: 16px;
+            --space-5: 20px;
+            --space-6: 24px;
+            --space-8: 32px;
+
+            --radius-sm: 4px;
+            --radius-md: 6px;
+            --radius-lg: 8px;
+
+            --shadow-subtle: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+            --shadow-popover: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
+            --shadow-modal: 0 20px 25px -5px rgba(15, 23, 42, 0.12), 0 8px 10px -6px rgba(15, 23, 42, 0.06);
+
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
-                         Arial, sans-serif;
-            background: var(--slate-100);
-            color: var(--slate-800);
+            font-family: var(--font-sans);
+            background-color: var(--color-canvas-subtle);
+            color: var(--color-fg-default);
+            font-size: 13px;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
             min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
-        /* ── header ── */
-        header {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #334155 100%);
-            color: #fff;
-            padding: 0 2rem;
-            height: 56px;
+        /* ── Top Navigation Bar ── */
+        .app-topbar {
+            height: 52px;
+            background-color: var(--color-canvas-default);
+            border-bottom: 1px solid var(--color-border-default);
+            padding: 0 var(--space-6);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            box-shadow: 0 1px 3px rgba(0,0,0,.2);
             position: sticky;
             top: 0;
             z-index: 50;
         }
-        header .brand {
+
+        .brand-section {
             display: flex;
             align-items: center;
-            gap: .6rem;
+            gap: var(--space-3);
         }
-        header .brand .mark {
+
+        .brand-mark {
             width: 28px;
             height: 28px;
-            border-radius: 6px;
-            background: linear-gradient(135deg, var(--accent), var(--accent-dim));
+            border-radius: var(--radius-md);
+            background-color: var(--color-primary);
+            color: #ffffff;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: .85rem;
             font-weight: 700;
-            color: #fff;
-            flex-shrink: 0;
-        }
-        header .brand h1 {
-            font-size: 1.1rem;
-            font-weight: 600;
-            letter-spacing: -.01em;
-        }
-        header .brand h1 span {
-            color: var(--accent);
-        }
-        header .meta {
-            display: flex;
-            align-items: center;
-            gap: .75rem;
-        }
-        header .pill {
-            font-size: .7rem;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: .05em;
-            padding: .25rem .65rem;
-            border-radius: 20px;
-            background: rgba(255,255,255,.08);
-            color: var(--slate-300);
-            border: 1px solid rgba(255,255,255,.06);
+            font-size: 13px;
         }
 
-        /* ── page ── */
-        .page {
-            max-width: 1120px;
-            margin: 0 auto;
-            padding: 1.75rem 1.5rem;
+        .brand-text {
+            display: flex;
+            align-items: baseline;
+            gap: var(--space-2);
         }
 
-        /* ── stats bar ── */
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 1rem;
-            margin-bottom: 1.75rem;
-        }
-        .stat-card {
-            background: #fff;
-            border-radius: var(--radius-lg);
-            padding: 1rem 1.25rem;
-            display: flex;
-            align-items: center;
-            gap: .9rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,.05);
-            border: 1px solid var(--slate-200);
-            transition: box-shadow .15s, transform .1s;
-        }
-        .stat-card:hover {
-            box-shadow: 0 4px 12px rgba(0,0,0,.08);
-            transform: translateY(-1px);
-        }
-        .stat-card .stat-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: var(--radius);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.1rem;
-            flex-shrink: 0;
-        }
-        .stat-card.red .stat-icon    { background: var(--red-bg); }
-        .stat-card.yellow .stat-icon { background: var(--yellow-bg); }
-        .stat-card.green .stat-icon  { background: var(--green-bg); }
-        .stat-card.total .stat-icon  { background: var(--indigo-bg); }
-        .stat-card .stat-body { display: flex; flex-direction: column; gap: .1rem; }
-        .stat-card .stat-value {
-            font-size: 1.4rem;
+        .brand-name {
+            font-size: 14px;
             font-weight: 700;
-            line-height: 1.2;
+            color: var(--color-fg-default);
+            letter-spacing: -0.01em;
         }
-        .stat-card.red .stat-value    { color: var(--red); }
-        .stat-card.yellow .stat-value { color: var(--yellow); }
-        .stat-card.green .stat-value  { color: var(--green); }
-        .stat-card.total .stat-value  { color: var(--indigo); }
-        .stat-card .stat-label {
-            font-size: .72rem;
+
+        .brand-desc {
+            font-size: 12px;
+            color: var(--color-fg-subtle);
             font-weight: 500;
-            color: var(--slate-500);
-            text-transform: uppercase;
-            letter-spacing: .04em;
         }
 
-        /* ── table card ── */
-        .table-card {
-            background: #fff;
-            border-radius: var(--radius-lg);
-            border: 1px solid var(--slate-200);
-            box-shadow: 0 1px 3px rgba(0,0,0,.05);
-            overflow: hidden;
-        }
-        .table-card .tbl-header {
-            padding: .9rem 1.25rem .65rem;
-            border-bottom: 1px solid var(--slate-200);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .table-card .tbl-header h2 {
-            font-size: .8rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: .05em;
-            color: var(--slate-500);
-        }
-        .table-card .tbl-header .count {
-            font-size: .75rem;
-            color: var(--slate-400);
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        thead th {
-            padding: .6rem 1.25rem;
-            text-align: left;
-            font-size: .68rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: .06em;
-            color: var(--slate-400);
-            background: var(--slate-50);
-            border-bottom: 1px solid var(--slate-200);
-        }
-        tbody td {
-            padding: .7rem 1.25rem;
-            border-bottom: 1px solid var(--slate-100);
-            vertical-align: middle;
-            font-size: .85rem;
-        }
-        tbody tr:last-child td { border-bottom: none; }
-        tbody tr {
-            transition: background .12s;
-        }
-        tbody tr:hover {
-            background: var(--slate-50);
-        }
-
-        /* ── tier badge ── */
-        .tier-badge {
+        .status-pill {
             display: inline-flex;
             align-items: center;
-            gap: .3rem;
-            padding: .2rem .55rem;
-            border-radius: 20px;
-            font-size: .75rem;
-            font-weight: 600;
-            white-space: nowrap;
-            letter-spacing: .01em;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            background-color: var(--color-success-bg);
+            color: var(--color-success-fg);
+            border: 1px solid var(--color-success-border);
         }
-        .tier-badge.red    { background: var(--red-bg);    color: var(--red); }
-        .tier-badge.yellow { background: var(--yellow-bg); color: var(--yellow); }
-        .tier-badge.green  { background: var(--green-bg);  color: var(--green); }
-        .tier-badge .dot {
+
+        .status-dot {
             width: 6px;
             height: 6px;
             border-radius: 50%;
-            display: inline-block;
+            background-color: var(--color-success-solid);
         }
-        .tier-badge.red .dot    { background: var(--red); }
-        .tier-badge.yellow .dot { background: var(--yellow); }
-        .tier-badge.green .dot  { background: var(--green); }
 
-        /* ── PR link ── */
-        td.pr a {
-            color: var(--slate-800);
-            text-decoration: none;
-            font-weight: 500;
-            font-size: .85rem;
-        }
-        td.pr a:hover {
-            color: var(--indigo);
-        }
-        td.pr .meta-row {
+        .topbar-actions {
             display: flex;
             align-items: center;
-            gap: .4rem;
-            margin-top: .15rem;
-        }
-        td.pr .security-tag {
-            font-size: .62rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: .04em;
-            padding: .1rem .4rem;
-            border-radius: 4px;
-            background: var(--red-bg);
-            color: var(--red);
+            gap: var(--space-2);
         }
 
-        /* ── summary ── */
-        td.summary {
-            max-width: 320px;
-            font-size: .82rem;
-            line-height: 1.45;
-            color: var(--slate-600);
-        }
-
-        /* ── actions ── */
-        td.actions { white-space: nowrap; text-align: right; }
-        .btn {
-            display: inline-block;
-            padding: .35rem .7rem;
-            margin-left: .35rem;
-            border-radius: 6px;
-            font-size: .75rem;
-            font-weight: 500;
-            text-decoration: none;
-            transition: box-shadow .12s, transform .08s;
-            line-height: 1.4;
-        }
-        .btn:hover {
-            box-shadow: 0 2px 8px rgba(0,0,0,.12);
-            transform: translateY(-1px);
-        }
-        .btn:active {
-            transform: translateY(0);
-        }
-        .btn.approve { background: var(--green); color: #fff; }
-        .btn.changes { background: var(--indigo); color: #fff; }
-        .btn.close   { background: var(--slate-400); color: #fff; }
-        .btn.close:hover { background: var(--red); }
-        .actioned {
+        /* ── Componentized Buttons ── */
+        .ui-btn {
             display: inline-flex;
             align-items: center;
-            gap: .25rem;
-            padding: .3rem .65rem;
-            font-size: .75rem;
+            justify-content: center;
+            gap: 6px;
+            font-family: inherit;
+            font-size: 12px;
             font-weight: 500;
-            color: var(--green);
-            background: var(--green-bg);
-            border-radius: 6px;
+            line-height: 18px;
+            height: 30px;
+            padding: 0 var(--space-3);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--color-border-default);
+            background-color: var(--color-canvas-default);
+            color: var(--color-fg-default);
+            cursor: pointer;
+            text-decoration: none;
+            transition: background-color 0.12s ease, border-color 0.12s ease;
+            white-space: nowrap;
         }
 
-        /* ── empty state ── */
-        .empty-state {
+        .ui-btn:hover {
+            background-color: var(--color-canvas-inset);
+            border-color: var(--color-border-muted);
+        }
+
+        .ui-btn:focus-visible {
+            outline: 2px solid var(--color-primary);
+            outline-offset: 1px;
+        }
+
+        .ui-btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .ui-btn-primary {
+            background-color: var(--color-primary);
+            border-color: var(--color-primary);
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        .ui-btn-primary:hover {
+            background-color: var(--color-primary-hover);
+            border-color: var(--color-primary-hover);
+        }
+
+        .ui-btn-primary:active {
+            background-color: var(--color-primary-active);
+        }
+
+        .ui-btn-sm {
+            height: 24px;
+            font-size: 11px;
+            padding: 0 8px;
+        }
+
+        .ui-btn-approve {
+            background-color: var(--color-success-bg);
+            border-color: var(--color-success-border);
+            color: var(--color-success-fg);
+            font-weight: 600;
+        }
+        .ui-btn-approve:hover {
+            background-color: var(--color-success-solid);
+            border-color: var(--color-success-solid);
+            color: #ffffff;
+        }
+
+        .ui-btn-changes {
+            background-color: var(--color-warning-bg);
+            border-color: var(--color-warning-border);
+            color: var(--color-warning-fg);
+            font-weight: 600;
+        }
+        .ui-btn-changes:hover {
+            background-color: #b45309;
+            border-color: #b45309;
+            color: #ffffff;
+        }
+
+        .ui-btn-reject {
+            background-color: var(--color-danger-bg);
+            border-color: var(--color-danger-border);
+            color: var(--color-danger-fg);
+            font-weight: 600;
+        }
+        .ui-btn-reject:hover {
+            background-color: var(--color-danger-solid);
+            border-color: var(--color-danger-solid);
+            color: #ffffff;
+        }
+
+        /* ── Navigation Tabs ── */
+        .subnav-tabs {
+            background-color: var(--color-canvas-default);
+            border-bottom: 1px solid var(--color-border-default);
+            padding: 0 var(--space-6);
+            display: flex;
+            gap: var(--space-4);
+        }
+
+        .subnav-tab {
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--color-fg-muted);
+            padding: var(--space-3) 2px;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.12s ease;
+        }
+
+        .subnav-tab:hover {
+            color: var(--color-fg-default);
+        }
+
+        .subnav-tab.active {
+            color: var(--color-primary);
+            border-bottom-color: var(--color-primary);
+            font-weight: 600;
+        }
+
+        .tab-counter {
+            font-size: 11px;
+            padding: 1px 6px;
+            border-radius: 9999px;
+            background-color: var(--color-canvas-inset);
+            color: var(--color-fg-muted);
+            font-weight: 600;
+        }
+
+        /* ── Main Container ── */
+        .main-layout {
+            max-width: 1540px;
+            width: 96%;
+            margin: 0 auto;
+            padding: var(--space-6) var(--space-4);
+            flex: 1;
+        }
+
+        /* ── Summary Metrics Bar (Enterprise Modern) ── */
+        .metrics-strip {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: var(--space-4);
+            margin-bottom: var(--space-5);
+        }
+
+        .metric-cell {
+            background-color: var(--color-canvas-default);
+            border: 1px solid var(--color-border-default);
+            border-top: 3px solid #3b82f6;
+            border-radius: var(--radius-lg);
+            padding: 16px 18px;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 5rem 2rem;
-            text-align: center;
+            justify-content: space-between;
         }
-        .empty-state .icon-ring {
-            width: 72px;
-            height: 72px;
-            border-radius: 50%;
-            background: var(--slate-100);
+
+        .metric-cell:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px -4px rgba(15, 23, 42, 0.08), 0 4px 6px -2px rgba(15, 23, 42, 0.04);
+        }
+
+        .metric-cell.danger {
+            border-top-color: #ef4444;
+            background: linear-gradient(180deg, #ffffff 0%, #fffbfb 100%);
+        }
+        .metric-cell.warning {
+            border-top-color: #f59e0b;
+            background: linear-gradient(180deg, #ffffff 0%, #fffdf8 100%);
+        }
+        .metric-cell.success {
+            border-top-color: #10b981;
+            background: linear-gradient(180deg, #ffffff 0%, #f7fdf9 100%);
+        }
+        .metric-cell.neutral {
+            border-top-color: #8b5cf6;
+            background: linear-gradient(180deg, #ffffff 0%, #faf8ff 100%);
+        }
+
+        .metric-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .metric-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--color-fg-subtle);
+        }
+
+        .metric-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 1.25rem;
-            font-size: 2rem;
         }
-        .empty-state h2 {
-            font-size: 1rem;
+        .metric-icon-total { background: #eff6ff; color: #2563eb; }
+        .metric-icon-danger { background: #fef2f2; color: #ef4444; }
+        .metric-icon-warning { background: #fffbeb; color: #d97706; }
+        .metric-icon-success { background: #ecfdf5; color: #059669; }
+        .metric-icon-neutral { background: #f5f3ff; color: #7c3aed; }
+
+        .metric-value {
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--color-fg-default);
+            font-variant-numeric: tabular-nums;
+            line-height: 1.1;
+        }
+
+        .metric-cell.danger .metric-value { color: var(--color-danger-fg); }
+        .metric-cell.warning .metric-value { color: #d97706; }
+        .metric-cell.success .metric-value { color: var(--color-success-fg); }
+        .metric-cell.neutral .metric-value { color: #7c3aed; }
+
+        /* ── Profile Configuration Bar ── */
+        .config-banner {
+            background-color: var(--color-canvas-default);
+            border: 1px solid var(--color-border-default);
+            border-radius: var(--radius-lg);
+            padding: 16px 20px;
+            margin-bottom: var(--space-5);
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .config-title-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .config-icon-badge {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: #eff6ff;
+            color: #2563eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .config-info h2 {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--color-fg-default);
+            margin-bottom: 2px;
+            letter-spacing: -0.01em;
+        }
+
+        .config-info p {
+            font-size: 12px;
+            color: var(--color-fg-subtle);
+            max-width: 600px;
+            line-height: 1.45;
+        }
+
+        .config-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .input-with-icon {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-with-icon svg {
+            position: absolute;
+            left: 10px;
+            color: var(--color-fg-subtle);
+            pointer-events: none;
+            width: 14px;
+            height: 14px;
+        }
+
+        .input-with-icon .ui-input {
+            padding-left: 32px;
+            width: 180px;
+        }
+
+        .github-linked-email-card {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            height: 32px;
+            padding: 0 12px;
+            background: var(--color-canvas-subtle);
+            border: 1px solid var(--color-border-default);
+            border-radius: var(--radius-md);
+            font-size: 12px;
+            color: var(--color-fg-default);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+            user-select: text;
+        }
+
+        .github-linked-email-card .email-card-icon {
+            color: var(--color-primary);
+            flex-shrink: 0;
+        }
+
+        .linked-email-address {
+            font-weight: 500;
+            color: var(--color-fg-default);
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 12px;
+        }
+
+        .linked-email-input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--color-fg-default);
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 12px;
+            font-weight: 500;
+            min-width: 190px;
+            max-width: 250px;
+        }
+
+        .linked-email-input::placeholder {
+            color: var(--color-fg-muted);
+            font-style: italic;
+        }
+
+        .linked-email-input:focus {
+            color: var(--color-primary);
+        }
+
+        .linked-email-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 7px;
+            border-radius: 9999px;
+            background: rgba(9, 105, 218, 0.1);
+            color: var(--color-primary);
+            font-size: 10px;
             font-weight: 600;
-            color: var(--slate-700);
-            margin-bottom: .4rem;
-        }
-        .empty-state p {
-            font-size: .85rem;
-            color: var(--slate-500);
-            max-width: 380px;
-            line-height: 1.6;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
         }
 
-        /* ── footer ── */
-        footer {
+        .ui-btn-outline {
+            background: var(--color-canvas-default);
+            border: 1px solid var(--color-border-default);
+            color: var(--color-fg-default);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 0 12px;
+            height: 32px;
+            border-radius: var(--radius-md);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .ui-btn-outline:hover {
+            background: var(--color-canvas-subtle);
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+        }
+
+        .ui-input {
+            font-family: inherit;
+            font-size: 12px;
+            height: 32px;
+            padding: 0 12px;
+            border: 1px solid var(--color-border-default);
+            border-radius: var(--radius-md);
+            background-color: var(--color-canvas-default);
+            color: var(--color-fg-default);
+            outline: none;
+            transition: all 0.15s ease;
+        }
+
+        .ui-input:focus {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.15);
+        }
+
+        .ui-input::placeholder {
+            color: var(--color-fg-subtle);
+        }
+
+        /* Modern Toggle Switch */
+        .ui-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            user-select: none;
+            padding: 0 4px;
+        }
+
+        .ui-toggle input {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: relative;
+            display: inline-block;
+            width: 34px;
+            height: 18px;
+            background-color: #cbd5e1;
+            border-radius: 9999px;
+            transition: background-color 0.2s ease;
+        }
+
+        .toggle-slider::before {
+            content: "";
+            position: absolute;
+            height: 14px;
+            width: 14px;
+            left: 2px;
+            bottom: 2px;
+            background-color: #ffffff;
+            border-radius: 50%;
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+        }
+
+        .ui-toggle input:checked + .toggle-slider {
+            background-color: #10b981;
+        }
+
+        .ui-toggle input:checked + .toggle-slider::before {
+            transform: translateX(16px);
+        }
+
+        .toggle-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--color-fg-muted);
+        }
+
+        /* ── Filter & Search Toolbar ── */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--space-3);
+            margin-bottom: var(--space-3);
+            flex-wrap: wrap;
+        }
+
+        .search-field {
+            position: relative;
+            width: 340px;
+        }
+
+        .search-field svg {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--color-fg-subtle);
+            pointer-events: none;
+        }
+
+        .search-field input {
+            width: 100%;
+            padding-left: 32px;
+            height: 32px;
+        }
+
+        .filter-group {
+            display: inline-flex;
+            background-color: var(--color-canvas-default);
+            border: 1px solid var(--color-border-default);
+            border-radius: var(--radius-md);
+            padding: 3px;
+            gap: 2px;
+            box-shadow: var(--shadow-subtle);
+        }
+
+        .filter-btn {
+            font-family: inherit;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 4px 12px;
+            border: none;
+            border-radius: var(--radius-sm);
+            background: transparent;
+            color: var(--color-fg-muted);
+            cursor: pointer;
+            transition: all 0.12s ease;
+        }
+
+        .filter-btn:hover {
+            color: var(--color-fg-default);
+            background-color: var(--color-canvas-inset);
+        }
+
+        .filter-btn.active {
+            background-color: #0f172a;
+            color: #ffffff;
+            font-weight: 600;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        /* ── Data Table (Dense Enterprise Spec - Overflow Auto) ── */
+        .table-container {
+            background-color: var(--color-canvas-default);
+            border: 1px solid var(--color-border-default);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .table-container::-webkit-scrollbar {
+            height: 7px;
+        }
+        .table-container::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        .table-container::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .table-container::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        .data-table {
+            width: 100%;
+            min-width: 1100px;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 13px;
+            text-align: left;
+        }
+
+        .data-table thead th {
+            background-color: #f8fafc;
+            color: var(--color-fg-subtle);
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--color-border-default);
+            white-space: nowrap;
+        }
+
+        .data-table tbody td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--color-border-default);
+            vertical-align: middle;
+        }
+
+        .data-table tbody tr {
+            transition: background-color 0.1s ease;
+        }
+
+        .data-table tbody tr:hover {
+            background-color: #f8fafc;
+        }
+
+        .data-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Badges */
+        .tier-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: var(--radius-sm);
+            border: 1px solid transparent;
+            white-space: nowrap;
+            letter-spacing: 0.02em;
+        }
+
+        .tier-badge.RED {
+            background-color: #fee2e2;
+            color: #b91c1c;
+            border-color: #fca5a5;
+        }
+
+        .tier-badge.YELLOW {
+            background-color: #fef3c7;
+            color: #b45309;
+            border-color: #fcd34d;
+        }
+
+        .tier-badge.GREEN {
+            background-color: #d1fae5;
+            color: #047857;
+            border-color: #6ee7b7;
+        }
+
+        .tier-badge.UNKNOWN {
+            background-color: var(--color-neutral-bg);
+            color: var(--color-neutral-fg);
+            border-color: var(--color-neutral-border);
+        }
+
+        .sec-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: var(--radius-sm);
+            background-color: #fee2e2;
+            color: #b91c1c;
+            border: 1px solid #f87171;
+            margin-top: 4px;
+        }
+
+        .bug-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: var(--radius-sm);
+            background-color: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fca5a5;
+            margin-top: 4px;
+        }
+
+        .pr-title-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 3px;
+        }
+
+        .pr-title-link {
+            color: var(--color-fg-default);
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            line-height: 1.35;
+            cursor: pointer;
+        }
+
+        .pr-title-link:hover {
+            color: var(--color-primary);
+            text-decoration: underline;
+        }
+
+        .github-ext-link {
+            color: var(--color-fg-subtle);
+            display: inline-flex;
+            align-items: center;
+            opacity: 0.55;
+            text-decoration: none;
+            padding: 2px;
+            border-radius: 3px;
+            transition: opacity 0.15s, color 0.15s, background-color 0.15s;
+        }
+
+        .github-ext-link:hover {
+            opacity: 1;
+            color: var(--color-primary);
+            background-color: var(--color-canvas-inset);
+        }
+
+        .pr-metadata {
+            font-size: 11px;
+            color: var(--color-fg-subtle);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .pr-metadata .repo-tag {
+            font-family: var(--font-mono);
+            font-weight: 600;
+            color: #334155;
+            background: #f1f5f9;
+            padding: 1px 5px;
+            border-radius: 4px;
+        }
+
+        .table-summary {
+            font-size: 12px;
+            color: var(--color-fg-muted);
+            line-height: 1.45;
+            max-width: 440px;
+        }
+
+        .summary-clamp {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            word-break: break-word;
+        }
+
+        .files-badge {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--color-fg-subtle);
+            background-color: var(--color-canvas-inset);
+            padding: 2px 7px;
+            border-radius: 4px;
+            white-space: nowrap;
+            display: inline-block;
+        }
+
+        /* ── Contributor Reputation Pills ── */
+        .rep-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 4px;
+            border: 1px solid transparent;
+            white-space: nowrap;
+            letter-spacing: 0.02em;
+        }
+        .rep-pill.TRUSTED_MAINTAINER {
+            background-color: #dcfce7;
+            color: #15803d;
+            border-color: #86efac;
+        }
+        .rep-pill.COLLABORATOR {
+            background-color: #eff6ff;
+            color: #1d4ed8;
+            border-color: #bfdbfe;
+        }
+        .rep-pill.RETURNING_CONTRIBUTOR {
+            background-color: #ecfeff;
+            color: #0e7490;
+            border-color: #a5f3fc;
+        }
+        .rep-pill.FIRST_TIME_CONTRIBUTOR {
+            background-color: #fef3c7;
+            color: #b45309;
+            border-color: #fcd34d;
+        }
+        .rep-pill.EXTERNAL_CONTRIBUTOR {
+            background-color: #fef3c7;
+            color: #b45309;
+            border-color: #fcd34d;
+        }
+
+        .author-rep-badge {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 4px;
+            border: 1px solid transparent;
+            white-space: nowrap;
+            letter-spacing: 0.02em;
+            display: inline-flex;
+            align-items: center;
+        }
+        .author-rep-badge.rep-returning {
+            background-color: #ecfeff;
+            color: #0e7490;
+            border-color: #a5f3fc;
+        }
+        .author-rep-badge.rep-first-time {
+            background-color: #fef3c7;
+            color: #b45309;
+            border-color: #fcd34d;
+        }
+        .author-rep-badge.rep-collaborator {
+            background-color: #eff6ff;
+            color: #1d4ed8;
+            border-color: #bfdbfe;
+        }
+        .author-rep-badge.rep-member {
+            background-color: #f3e8ff;
+            color: #7e22ce;
+            border-color: #d8b4fe;
+        }
+        .author-rep-badge.rep-owner {
+            background-color: #dcfce7;
+            color: #15803d;
+            border-color: #86efac;
+        }
+
+        /* ── Code Diff Summary (Before vs Changed) ── */
+        .code-diff-preview {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            max-width: 440px;
+        }
+        .diff-before-pill {
+            font-size: 11px;
+            line-height: 1.4;
+            color: #7f1d1d;
+            background: #fef2f2;
+            border-left: 2px solid #ef4444;
+            padding: 2px 6px;
+            border-radius: 3px;
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .diff-after-pill {
+            font-size: 11px;
+            line-height: 1.4;
+            color: #14532d;
+            background: #f0fdf4;
+            border-left: 2px solid #10b981;
+            padding: 2px 6px;
+            border-radius: 3px;
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .badge-prev {
+            font-size: 9px;
+            font-weight: 700;
+            color: #b91c1c;
+            margin-right: 4px;
+            text-transform: uppercase;
+        }
+        .badge-new-code {
+            font-size: 9px;
+            font-weight: 700;
+            color: #15803d;
+            margin-right: 4px;
+            text-transform: uppercase;
+        }
+
+        .status-cell {
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
             text-align: center;
-            padding: 1.5rem;
-            font-size: .72rem;
-            color: var(--slate-400);
         }
 
-        /* ── responsive ── */
-        @media (max-width: 800px) {
-            .stats {
-                grid-template-columns: repeat(2, 1fr);
-                gap: .65rem;
-            }
-            .stat-card { padding: .75rem 1rem; }
-            .stat-card .stat-value { font-size: 1.2rem; }
-            header { padding: 0 1rem; }
-            .page { padding: 1rem .75rem; }
-            td.summary { max-width: 160px; }
-            td.actions { white-space: normal; }
-            .btn { margin-bottom: .2rem; }
+        .badge-completed {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #047857;
+            background-color: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            padding: 3px 8px;
+            border-radius: var(--radius-sm);
+            letter-spacing: 0.02em;
         }
-        @media (max-width: 480px) {
-            .stats { grid-template-columns: 1fr 1fr; gap: .5rem; }
-            header .meta .pill { display: none; }
-            thead th:nth-child(3),
-            tbody td:nth-child(3) { display: none; }
+
+        .badge-new {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #64748b;
+            background-color: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            padding: 3px 8px;
+            border-radius: var(--radius-sm);
+        }
+
+        .actions-cell {
+            text-align: right;
+            white-space: nowrap;
+            min-width: 310px;
+        }
+
+        .action-button-group {
+            display: inline-flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .action-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            height: 28px;
+            padding: 0 10px;
+            font-family: var(--font-sans);
+            font-size: 11px;
+            font-weight: 600;
+            border-radius: 5px;
+            text-decoration: none;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .action-btn:active {
+            transform: translateY(0);
+        }
+
+        .action-btn svg {
+            flex-shrink: 0;
+        }
+
+        .action-btn-details {
+            background-color: #f1f5f9;
+            border-color: #cbd5e1;
+            color: #1e293b;
+        }
+        .action-btn-details:hover {
+            background-color: #e2e8f0;
+            border-color: #94a3b8;
+        }
+
+        .action-btn-approve {
+            background-color: #ecfdf5;
+            border-color: #a7f3d0;
+            color: #047857;
+        }
+        .action-btn-approve:hover {
+            background-color: #10b981;
+            border-color: #059669;
+            color: #ffffff;
+            box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
+        }
+
+        .action-btn-changes {
+            background-color: #fffbeb;
+            border-color: #fde68a;
+            color: #b45309;
+        }
+        .action-btn-changes:hover {
+            background-color: #f59e0b;
+            border-color: #d97706;
+            color: #ffffff;
+            box-shadow: 0 2px 6px rgba(245, 158, 11, 0.25);
+        }
+
+        .action-btn-reject {
+            background-color: #fef2f2;
+            border-color: #fecaca;
+            color: #b91c1c;
+        }
+        .action-btn-reject:hover {
+            background-color: #ef4444;
+            border-color: #dc2626;
+            color: #ffffff;
+            box-shadow: 0 2px 6px rgba(239, 68, 68, 0.25);
+        }
+
+        /* ── Floating Toast System ── */
+        .toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+
+        .toast {
+            pointer-events: auto;
+            min-width: 280px;
+            max-width: 420px;
+            background: #1e293b;
+            color: #ffffff;
+            border-radius: 8px;
+            padding: 12px 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+            border: 1px solid #334155;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            animation: toastIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            transition: opacity 0.2s, transform 0.2s;
+        }
+
+        @keyframes toastIn {
+            from { transform: translateY(12px) scale(0.96); opacity: 0; }
+            to { transform: translateY(0) scale(1); opacity: 1; }
+        }
+
+        .toast.success { border-left: 4px solid #10b981; }
+        .toast.error { border-left: 4px solid #ef4444; }
+        .toast.info { border-left: 4px solid #3b82f6; }
+
+        /* ── Content Card Panel ── */
+        .card-panel {
+            background-color: var(--color-canvas-default);
+            border: 1px solid var(--color-border-default);
+            border-radius: var(--radius-md);
+            padding: var(--space-6);
+            box-shadow: var(--shadow-subtle);
+        }
+
+        .card-header {
+            margin-bottom: var(--space-4);
+        }
+
+        .card-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--color-fg-default);
+            margin-bottom: 2px;
+        }
+
+        .card-desc {
+            font-size: 12px;
+            color: var(--color-fg-subtle);
+        }
+
+        .form-grid {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-4);
+            max-width: 640px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .form-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--color-fg-default);
+        }
+
+        .form-hint {
+            font-size: 11px;
+            color: var(--color-fg-subtle);
+        }
+
+        /* ── Empty State ── */
+        .empty-state {
+            padding: var(--space-8) var(--space-6);
+            text-align: center;
+        }
+
+        .empty-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background-color: var(--color-canvas-inset);
+            color: var(--color-fg-subtle);
+            margin-bottom: var(--space-3);
+        }
+
+        .empty-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--color-fg-default);
+            margin-bottom: 4px;
+        }
+
+        .empty-description {
+            font-size: 12px;
+            color: var(--color-fg-subtle);
+            max-width: 440px;
+            margin: 0 auto;
+        }
+
+        /* ── Inspection Modal Dialog ── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(15, 23, 42, 0.45);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-4);
+        }
+
+        .modal-dialog {
+            background-color: var(--color-canvas-default);
+            border: 1px solid var(--color-border-default);
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 720px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow-modal);
+            overflow: hidden;
+        }
+
+        .modal-header {
+            padding: var(--space-4);
+            border-bottom: 1px solid var(--color-border-default);
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: var(--space-3);
+        }
+
+        .modal-body {
+            padding: var(--space-4);
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-footer {
+            padding: var(--space-3) var(--space-4);
+            border-top: 1px solid var(--color-border-default);
+            background-color: var(--color-canvas-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: var(--space-2);
+        }
+
+        .modal-close-btn {
+            background: transparent;
+            border: none;
+            color: var(--color-fg-subtle);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: var(--radius-sm);
+            line-height: 1;
+        }
+
+        .modal-close-btn:hover {
+            background-color: var(--color-canvas-inset);
+            color: var(--color-fg-default);
+        }
+
+        .code-block {
+            background-color: var(--color-canvas-subtle);
+            border: 1px solid var(--color-border-default);
+            border-radius: var(--radius-md);
+            padding: var(--space-3);
+            font-family: var(--font-mono);
+            font-size: 12px;
+            line-height: 1.5;
+            color: var(--color-fg-default);
+            white-space: pre-wrap;
+            margin: var(--space-2) 0 var(--space-4);
+        }
+
+        .findings-grid {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-2);
+            margin-top: var(--space-2);
+        }
+
+        .finding-card {
+            background-color: var(--color-canvas-subtle);
+            border: 1px solid var(--color-border-default);
+            border-left: 3px solid var(--color-primary);
+            border-radius: var(--radius-sm);
+            padding: var(--space-3);
+            font-size: 12px;
+        }
+
+        .finding-card.CRITICAL, .finding-card.HIGH { border-left-color: var(--color-danger-solid); }
+        .finding-card.MEDIUM { border-left-color: var(--color-warning-border); }
+        .finding-card.LOW { border-left-color: var(--color-success-solid); }
+
+        .finding-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+
+        .finding-path {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--color-fg-subtle);
+            margin-top: 4px;
+        }
+
+        .finding-suggestion {
+            margin-top: 4px;
+            color: var(--color-success-fg);
+            font-size: 11px;
+        }
+
+        /* ── Loading Spinner (CSS/SVG) ── */
+        .spinner {
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* ── Responsive Rules ── */
+        @media (max-width: 960px) {
+            .metrics-strip { grid-template-columns: repeat(2, 1fr); }
+            .search-field { width: 100%; }
+            .toolbar { flex-direction: column; align-items: stretch; }
+        }
+
+        @media (max-width: 640px) {
+            .app-topbar { padding: 0 var(--space-4); }
+            .subnav-tabs { padding: 0 var(--space-4); }
+            .main-layout { padding: var(--space-4); }
+            .metrics-strip { grid-template-columns: 1fr; }
+            .config-controls { flex-direction: column; align-items: stretch; }
+            .table-summary { display: none; }
         }
     </style>
 </head>
 <body>
 
-<header>
-    <div class="brand">
-        <div class="mark">G</div>
-        <h1><span>glint</span> PR Triage</h1>
+<!-- ── Application Header ── -->
+<header class="app-topbar" role="banner">
+    <div class="brand-section">
+        <div class="brand-mark" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="18" cy="18" r="3"></circle>
+                <circle cx="6" cy="6" r="3"></circle>
+                <path d="M13 6h3a2 2 0 0 1 2 2v7"></path>
+                <line x1="6" y1="9" x2="6" y2="21"></line>
+            </svg>
+        </div>
+        <div class="brand-text">
+            <span class="brand-name">Glint</span>
+            <span class="brand-desc">PR Triage Engine</span>
+        </div>
+        <div class="status-pill" title="Background service monitoring configured repositories every 60s">
+            <span class="status-dot"></span>
+            <span>Daemon Active</span>
+        </div>
     </div>
-    <div class="meta">
-        <span class="pill">Dashboard</span>
+
+    <div class="topbar-actions">
+        <button class="ui-btn" id="syncBtn" onclick="triggerSyncNow()" aria-label="Trigger repository polling sync">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sync-icon">
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+            </svg>
+            <span>Sync Now</span>
+        </button>
+        <a href="/email/preview" target="_blank" class="ui-btn" title="Inspect the latest generated HTML email notification">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+            </svg>
+            <span>Email Preview</span>
+        </a>
     </div>
 </header>
 
-<div class="page">
+<!-- ── Subnavigation Tabs ── -->
+<nav class="subnav-tabs" aria-label="Dashboard views">
+    <button class="subnav-tab active" onclick="switchTab('history')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10"></line>
+            <line x1="12" y1="20" x2="12" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="14"></line>
+        </svg>
+        <span>Pull Requests</span>
+        <span class="tab-counter" id="tabCounterHistory" th:text="${totalCount}">0</span>
+    </button>
+    <button class="subnav-tab" onclick="switchTab('actioned')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span>Actioned Decisions</span>
+        <span class="tab-counter" id="tabCounterActioned" th:text="${actionedCount}">0</span>
+    </button>
+    <button class="subnav-tab" onclick="switchTab('ondemand')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+        </svg>
+        <span>On-Demand Review</span>
+    </button>
+    <button class="subnav-tab" onclick="switchTab('profile')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+        <span>Profile Monitoring</span>
+    </button>
+    <button class="subnav-tab" onclick="switchTab('extension')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48 2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48 2.83-2.83"></path>
+        </svg>
+        <span>Browser Extension</span>
+    </button>
+</nav>
 
-    <!-- stats row: count by tier -->
-    <div class="stats" th:unless="${empty}">
-        <div class="stat-card red">
-            <div class="stat-icon">🔴</div>
-            <div class="stat-body">
-                <span class="stat-value" th:text="${rows.?[tier == 'RED'].size()}">0</span>
-                <span class="stat-label">Needs Attention</span>
-            </div>
-        </div>
-        <div class="stat-card yellow">
-            <div class="stat-icon">🟡</div>
-            <div class="stat-body">
-                <span class="stat-value" th:text="${rows.?[tier == 'YELLOW'].size()}">0</span>
-                <span class="stat-label">Review</span>
-            </div>
-        </div>
-        <div class="stat-card green">
-            <div class="stat-icon">🟢</div>
-            <div class="stat-body">
-                <span class="stat-value" th:text="${rows.?[tier == 'GREEN'].size()}">0</span>
-                <span class="stat-label">Looks Good</span>
-            </div>
-        </div>
-        <div class="stat-card total">
-            <div class="stat-icon">📊</div>
-            <div class="stat-body">
-                <span class="stat-value" th:text="${rows.size()}">0</span>
-                <span class="stat-label">Total Reviewed</span>
-            </div>
-        </div>
-    </div>
+<!-- ── Main Workspace Content ── -->
+<main class="main-layout">
 
-    <!-- main table -->
-    <div class="table-card" th:unless="${empty}">
-        <div class="tbl-header">
-            <h2>Recent Analyses</h2>
-            <span class="count" th:text="${rows.size() + ' PRs'}">0 PRs</span>
+    <!-- KPI Metric Summary Row -->
+    <section class="metrics-strip" aria-label="PR Analysis Metrics">
+        <div class="metric-cell">
+            <div class="metric-header">
+                <span class="metric-label">Total Analyzed</span>
+                <div class="metric-icon metric-icon-total">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="18" cy="18" r="3"></circle>
+                        <circle cx="6" cy="6" r="3"></circle>
+                        <path d="M13 6h3a2 2 0 0 1 2 2v7"></path>
+                        <line x1="6" y1="9" x2="6" y2="21"></line>
+                    </svg>
+                </div>
+            </div>
+            <div class="metric-value" th:text="${totalCount}">0</div>
         </div>
-        <table>
-            <thead>
-            <tr>
-                <th>Tier</th>
-                <th>Pull Request</th>
-                <th>Summary</th>
-                <th>Status</th>
-                <th>Actions</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr th:each="r : ${rows}">
-                <!-- tier -->
-                <td>
-                    <span class="tier-badge" th:classappend="${r.tier == 'RED' ? 'red' : (r.tier == 'YELLOW' ? 'yellow' : 'green')}">
-                        <span class="dot"></span>
-                        <span th:text="${r.tier}">TIER</span>
-                    </span>
-                </td>
-                <!-- PR -->
-                <td class="pr">
-                    <a th:href="@{https://github.com/{pr}(pr=${r.pr})}" th:text="${r.pr}" target="_blank">PR</a>
-                    <div class="meta-row" th:if="${r.emoji == '🔒'}">
-                        <span class="security-tag">🔒 Security</span>
+        <div class="metric-cell danger">
+            <div class="metric-header">
+                <span class="metric-label">High Risk (Tier 1)</span>
+                <div class="metric-icon metric-icon-danger">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                </div>
+            </div>
+            <div class="metric-value" th:text="${redCount}">0</div>
+        </div>
+        <div class="metric-cell warning">
+            <div class="metric-header">
+                <span class="metric-label">Medium Risk (Tier 2)</span>
+                <div class="metric-icon metric-icon-warning">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                </div>
+            </div>
+            <div class="metric-value" th:text="${yellowCount}">0</div>
+        </div>
+        <div class="metric-cell success">
+            <div class="metric-header">
+                <span class="metric-label">Low Risk / Safe</span>
+                <div class="metric-icon metric-icon-success">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="metric-value" th:text="${greenCount}">0</div>
+        </div>
+        <div class="metric-cell neutral" onclick="switchTab('actioned')" style="cursor: pointer;" title="Click to view all actioned pull requests">
+            <div class="metric-header">
+                <span class="metric-label">Decisions Taken</span>
+                <div class="metric-icon metric-icon-neutral">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                        <path d="m9 14 2 2 4-4"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="metric-value" id="kpiDecisionsCount" th:text="${actionedCount}">0</div>
+        </div>
+    </section>
+
+    <!-- Quick Profile Setup Bar -->
+    <section class="config-banner" aria-label="Monitoring Profile Settings">
+        <div class="config-info">
+            <div class="config-title-row">
+                <div class="config-icon-badge">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                </div>
+                <div>
+                    <h2>Autonomous Profile Monitoring</h2>
+                    <p>Background worker continuously checks open PRs across your GitHub repositories, calculates risk scores, and routes email triage alerts.</p>
+                </div>
+            </div>
+        </div>
+        <div class="config-controls">
+            <div class="input-with-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+                </svg>
+                <input type="text" id="quickUsername" class="ui-input" placeholder="GitHub username" th:value="${profile.githubUsername}" aria-label="GitHub username" onkeydown="if(event.key==='Enter') handleAccountSwitch()">
+            </div>
+            <button class="ui-btn ui-btn-outline" onclick="handleAccountSwitch()" title="Switch active account and load their PR history">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                <span>Switch / Load</span>
+            </button>
+            <!-- Destination Email for PR Triage Alerts & Decisions -->
+            <div class="github-linked-email-card" id="linkedEmailCard" title="Destination email for PR triage decisions and alerts (click to edit, auto-detects from GitHub)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="email-card-icon">
+                    <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+                </svg>
+                <input type="email" id="quickEmail" class="linked-email-input" th:value="${profile.notificationEmail != null && !profile.notificationEmail.isBlank() ? profile.notificationEmail : ''}" placeholder="Enter alert email..." title="Type your email address here to receive triage alerts">
+                <span class="linked-email-badge" id="emailBadge" onclick="fetchLinkedEmailForUser(document.getElementById('quickUsername').value.trim())" title="Click to auto-fetch email from GitHub account" style="cursor: pointer;">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.1-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2z"/>
+                    </svg>
+                    <span>Auto-Detect</span>
+                </span>
+            </div>
+            <label class="ui-toggle" title="Enable continuous background polling">
+                <input type="checkbox" id="quickAutoToggle" th:checked="${profile.autoTriageEnabled}">
+                <span class="toggle-slider"></span>
+                <span class="toggle-label">Active</span>
+            </label>
+            <button class="ui-btn ui-btn-primary" onclick="saveProfileQuick()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                    <polyline points="7 3 7 8 15 8"></polyline>
+                </svg>
+                <span>Save Settings</span>
+            </button>
+            <button class="ui-btn ui-btn-outline" id="btnTestEmail" onclick="sendTestTriageEmail()" title="Send an immediate triage alert with Approve & Reject buttons to your linked Gmail">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+                <span>Test Review Email</span>
+            </button>
+        </div>
+    </section>
+
+    <!-- ── Tab 1: Pull Requests History ── -->
+    <div id="tab-history" class="tab-pane">
+        <!-- Toolbar: Search & Filter -->
+        <div class="toolbar">
+            <div class="search-field">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="searchInput" class="ui-input" placeholder="Search by repo, PR #, title, or author..." onkeyup="filterHistory()" aria-label="Search pull requests">
+            </div>
+
+            <div class="filter-group" role="group" aria-label="Filter by Risk Tier">
+                <button class="filter-btn active" onclick="setFilter('ALL', this)">All</button>
+                <button class="filter-btn" onclick="setFilter('RED', this)">High Risk</button>
+                <button class="filter-btn" onclick="setFilter('YELLOW', this)">Medium</button>
+                <button class="filter-btn" onclick="setFilter('GREEN', this)">Low Risk</button>
+                <button class="filter-btn" onclick="setFilter('SECURITY', this)">Security</button>
+                <button class="filter-btn" onclick="setFilter('BUGS', this)">🐛 Bugs</button>
+                <button class="filter-btn" onclick="setFilter('DONE', this)">Actioned</button>
+            </div>
+        </div>
+
+        <!-- History Table & Empty State Wrapper -->
+        <div id="historyTableWrapper">
+            <!-- Table View -->
+            <div id="tableContainer" class="table-container" th:unless="${empty}">
+                <table class="data-table" aria-label="Pull Request Triage History">
+                    <thead>
+                    <tr>
+                        <th style="width: 120px;">Priority & Risk</th>
+                        <th style="min-width: 250px;">Pull Request</th>
+                        <th class="table-summary" style="min-width: 340px;">Code Change &amp; AI Summary</th>
+                        <th style="width: 85px; text-align: center;">Scope</th>
+                        <th style="width: 100px; text-align: center;">Status</th>
+                        <th style="width: 310px; min-width: 310px; text-align: right;">Quick Decisions</th>
+                    </tr>
+                    </thead>
+                    <tbody id="prTableBody">
+                    <tr th:each="r : ${rows}" 
+                        th:attr="data-tier=${r.tier}, data-sec=${r.security}, data-bug=${r.bugFlag}, data-actioned=${r.actioned}"
+                        class="pr-row">
+                        <!-- Priority Tier -->
+                        <td>
+                            <span class="tier-badge" th:classappend="${r.tier}">
+                                <span th:text="${r.tier}">TIER</span>
+                            </span>
+                            <div th:if="${r.security}">
+                                <span class="sec-tag">🔒 Security</span>
+                            </div>
+                            <div th:if="${r.bugFlag}">
+                                <span class="bug-tag">🐛 Code Bug</span>
+                            </div>
+                        </td>
+                        <!-- Pull Request Info -->
+                        <td>
+                            <div class="pr-title-row">
+                                <a href="javascript:void(0)" onclick="openPrModal(this)" class="pr-title-link"
+                                   th:data-title="${r.title}"
+                                   th:data-pr="${r.pr}"
+                                   th:data-tier="${r.tier}"
+                                   th:data-sec="${r.security}"
+                                   th:data-summary="${r.fullSummary}"
+                                   th:data-findings="${r.findingsJson}"
+                                   th:data-author="${r.author}"
+                                   th:data-rep="${r.authorReputation}"
+                                   th:data-repdetail="${r.authorReputationDetail}"
+                                   th:data-repocontext="${r.repoContext}"
+                                   th:data-before="${r.changeSummaryBefore}"
+                                   th:data-after="${r.changeSummaryAfter}"
+                                   th:data-approve="${r.approveUrl}"
+                                   th:data-changes="${r.changesUrl}"
+                                   th:data-close="${r.closeUrl}"
+                                   th:text="${r.title}"
+                                   title="Click to view full PR triage assessment">PR Title</a>
+                                <a th:href="@{https://github.com/{owner}/{repo}/pull/{pr}(owner=${r.owner},repo=${r.repo},pr=${r.prNumber})}" 
+                                   target="_blank" rel="noopener noreferrer" class="github-ext-link"
+                                   title="Open on GitHub (external)">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                        <polyline points="15 3 21 3 21 9"></polyline>
+                                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                                    </svg>
+                                </a>
+                            </div>
+                            <div class="pr-metadata">
+                                <span class="repo-tag" th:text="${r.owner + '/' + r.repo + ' #' + r.prNumber}">acme/api #42</span>
+                                <span>&bull;</span>
+                                <span th:text="'@' + ${r.author}">@user</span>
+                                <span th:if="${r.authorReputation != null && !r.authorReputation.isEmpty()}" 
+                                      class="rep-pill" 
+                                      th:classappend="${r.authorReputation}" 
+                                      th:title="${r.authorReputationDetail}"
+                                      th:text="${#strings.replace(r.authorReputation, '_', ' ')}">FIRST TIME</span>
+                                <span>&bull;</span>
+                                <span th:text="${r.createdAt}">time</span>
+                            </div>
+                        </td>
+                        <!-- Summary -->
+                        <td class="table-summary">
+                            <div class="code-diff-preview" th:if="${(r.changeSummaryBefore != null && !r.changeSummaryBefore.isEmpty()) || (r.changeSummaryAfter != null && !r.changeSummaryAfter.isEmpty())}">
+                                <div class="diff-before-pill" th:if="${r.changeSummaryBefore != null && !r.changeSummaryBefore.isEmpty()}">
+                                    <span class="badge-prev">Was</span> <span th:text="${r.changeSummaryBefore}">Before</span>
+                                </div>
+                                <div class="diff-after-pill" th:if="${r.changeSummaryAfter != null && !r.changeSummaryAfter.isEmpty()}">
+                                    <span class="badge-new-code">Now</span> <span th:text="${r.changeSummaryAfter}">After</span>
+                                </div>
+                            </div>
+                            <div class="summary-clamp" th:unless="${(r.changeSummaryBefore != null && !r.changeSummaryBefore.isEmpty()) || (r.changeSummaryAfter != null && !r.changeSummaryAfter.isEmpty())}" th:title="${r.fullSummary}" th:text="${r.summary}">
+                                Summary text
+                            </div>
+                        </td>
+                        <!-- Files -->
+                        <td style="text-align: center;">
+                            <span class="files-badge" th:text="${r.filesCount + ' files'}">0 files</span>
+                        </td>
+                        <!-- Status -->
+                        <td class="status-cell">
+                            <span th:if="${r.actioned}" class="badge-completed">ACTIONED</span>
+                            <span th:unless="${r.actioned}" class="badge-new" th:text="${r.status}">NEW</span>
+                        </td>
+                        <!-- Quick Decision Actions -->
+                        <td class="actions-cell">
+                            <span class="action-button-group">
+                                <span th:if="${r.actioned}" class="badge-completed" style="margin-right: 4px; padding: 3px 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;" title="Triage decision applied">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                    <span th:text="${r.status}">DONE</span>
+                                </span>
+                                <button class="action-btn action-btn-details" 
+                                        th:data-title="${r.title}"
+                                        th:data-pr="${r.pr}"
+                                        th:data-tier="${r.tier}"
+                                        th:data-sec="${r.security}"
+                                        th:data-summary="${r.fullSummary}"
+                                        th:data-findings="${r.findingsJson}"
+                                        th:data-author="${r.author}"
+                                        th:data-rep="${r.authorReputation}"
+                                        th:data-repdetail="${r.authorReputationDetail}"
+                                        th:data-repocontext="${r.repoContext}"
+                                        th:data-before="${r.changeSummaryBefore}"
+                                        th:data-after="${r.changeSummaryAfter}"
+                                        th:data-approve="${r.approveUrl}"
+                                        th:data-changes="${r.changesUrl}"
+                                        th:data-close="${r.closeUrl}"
+                                        onclick="openPrModal(this)"
+                                        title="View full AI assessment and findings">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                    </svg>
+                                    <span>Details</span>
+                                </button>
+                                <a class="action-btn action-btn-approve" th:href="${r.approveUrl}" onclick="executeRowAction(this, event, 'approve')" title="Approve pull request">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                    <span>Approve</span>
+                                </a>
+                                <a class="action-btn action-btn-changes" th:href="${r.changesUrl}" onclick="executeRowAction(this, event, 'request-changes')" title="Request changes on pull request">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                    <span>Changes</span>
+                                </a>
+                                <a class="action-btn action-btn-reject" th:href="${r.closeUrl}" onclick="executeRowAction(this, event, 'close')" title="Close pull request">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                                    </svg>
+                                    <span>Close</span>
+                                </a>
+                            </span>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Empty State (Complies with unit test requirement) -->
+            <div id="emptyContainer" th:if="${empty}" class="table-container">
+                <div class="empty-state">
+                    <div class="empty-icon" aria-hidden="true">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <polyline points="10 9 9 9 8 9"></polyline>
+                        </svg>
                     </div>
-                </td>
-                <!-- summary -->
-                <td class="summary" th:text="${r.summary}">summary</td>
-                <!-- status -->
-                <td th:text="${r.status}">NEW</td>
-                <!-- actions -->
-                <td class="actions">
-                    <span th:if="${r.actioned}" class="actioned">✓ Done</span>
-                    <span th:unless="${r.actioned}">
-                        <a class="btn approve" th:href="${r.approveUrl}">Approve</a>
-                        <a class="btn changes" th:href="${r.changesUrl}">Changes</a>
-                        <a class="btn close"   th:href="${r.closeUrl}">Close</a>
-                    </span>
-                </td>
-            </tr>
-            </tbody>
-        </table>
-    </div>
-
-    <!-- empty state -->
-    <div th:if="${empty}" class="table-card">
-        <div class="empty-state">
-            <div class="icon-ring">📋</div>
-            <h2>No PRs analyzed yet.</h2>
-            <p>Once glint processes incoming pull requests, they'll appear here with triage tiers and one-click actions.</p>
+                    <h3 class="empty-title" th:text="${activeUser != null && !activeUser.isEmpty() ? 'No PRs analyzed yet for @' + activeUser : 'No PRs analyzed yet.'}">No PRs analyzed yet.</h3>
+                    <p class="empty-description" th:text="${activeUser != null && !activeUser.isEmpty() ? 'No pull requests analyzed for @' + activeUser + ' yet. Trigger a sync or run an on-demand triage to begin automated code analysis.' : 'Enter your GitHub username above and click Switch / Load to load your PR triage history.'}">Enter your GitHub username above and click Switch / Load to load your PR triage history.</p>
+                </div>
+            </div>
         </div>
     </div>
 
+    <!-- ── Tab: Actioned Decisions & History ── -->
+    <div id="tab-actioned" class="tab-pane" style="display: none;">
+        <div class="card-panel">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: var(--space-3);">
+                <div>
+                    <h2 class="card-title" style="display: flex; align-items: center; gap: 8px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-success-fg);">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        <span>Actioned Decisions & Audit Log</span>
+                    </h2>
+                    <p class="card-desc">Comprehensive record of all pull requests where triage actions (Approval, Request Changes, or Closure) have been executed.</p>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="badge-completed" style="padding: 5px 12px; font-size: 12px; font-weight: 600;">
+                        <span id="actionedBannerCount" th:text="${actionedCount}">0</span> Decisions Recorded
+                    </span>
+                    <button class="ui-btn ui-btn-outline" style="height: 32px;" onclick="switchTab('history')">
+                        <span>View All PRs</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Actioned Table -->
+            <div class="table-responsive" th:if="${actionedCount > 0}">
+                <table class="pr-table" aria-label="Actioned Pull Requests">
+                    <thead>
+                    <tr>
+                        <th style="width: 110px;">Priority & Risk</th>
+                        <th style="width: 250px;">Pull Request</th>
+                        <th>Code Change & AI Summary</th>
+                        <th style="width: 80px; text-align: center;">Scope</th>
+                        <th style="width: 110px;">Status</th>
+                        <th style="width: 280px; text-align: right;">Quick Decisions</th>
+                    </tr>
+                    </thead>
+                    <tbody id="actionedTableBody">
+                    <tr class="pr-row actioned-pr-row" th:each="r : ${rows}" th:if="${r.actioned}"
+                        th:attr="data-tier=${r.tier}, data-sec=${r.security}, data-actioned='true'">
+                        <!-- Priority & Risk -->
+                        <td class="tier-cell">
+                            <span class="tier-pill" th:classappend="${'tier-' + (r.tier != null ? r.tier.toLowerCase() : 'unknown')}">
+                                <span th:text="${r.tier}">TIER</span>
+                            </span>
+                            <span th:if="${r.security}" class="security-flag-badge">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                </svg>
+                                <span>Security</span>
+                            </span>
+                        </td>
+                        <!-- Pull Request Title & Metadata -->
+                        <td>
+                            <div class="pr-title-wrap pr-title-row">
+                                <a href="javascript:void(0)" onclick="openPrModal(this)" class="pr-title-link"
+                                   th:data-title="${r.title}"
+                                   th:data-pr="${r.pr}"
+                                   th:data-tier="${r.tier}"
+                                   th:data-sec="${r.security}"
+                                   th:data-summary="${r.fullSummary}"
+                                   th:data-findings="${r.findingsJson}"
+                                   th:data-author="${r.author}"
+                                   th:data-rep="${r.authorReputation}"
+                                   th:data-repdetail="${r.authorReputationDetail}"
+                                   th:data-repocontext="${r.repoContext}"
+                                   th:data-before="${r.changeSummaryBefore}"
+                                   th:data-after="${r.changeSummaryAfter}"
+                                   th:data-approve="${r.approveUrl}"
+                                   th:data-changes="${r.changesUrl}"
+                                   th:data-close="${r.closeUrl}"
+                                   th:text="${r.title}"
+                                   title="Click to view full PR triage assessment">Pull Request Title</a>
+                                <a th:href="${'https://github.com/' + r.owner + '/' + r.repo + '/pull/' + r.prNumber}"
+                                   target="_blank" rel="noopener noreferrer" class="github-ext-link"
+                                   title="Open on GitHub (external)">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                        <polyline points="15 3 21 3 21 9"></polyline>
+                                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                                    </svg>
+                                </a>
+                            </div>
+                            <div class="pr-meta-row">
+                                <span class="repo-tag" th:text="${r.pr}">owner/repo #1</span>
+                                <span>&bull;</span>
+                                <span class="author-tag" th:text="${'@' + r.author}">@author</span>
+                                <span th:if="${r.authorReputation == 'RETURNING_CONTRIBUTOR'}" class="author-rep-badge rep-returning">Returning Contributor</span>
+                                <span th:if="${r.authorReputation == 'FIRST_TIME_CONTRIBUTOR'}" class="author-rep-badge rep-first-time">First-time Contributor</span>
+                                <span th:if="${r.authorReputation == 'COLLABORATOR'}" class="author-rep-badge rep-collaborator">Collaborator</span>
+                                <span th:if="${r.authorReputation == 'MEMBER'}" class="author-rep-badge rep-member">Org Member</span>
+                                <span th:if="${r.authorReputation == 'OWNER' || r.authorReputation == 'TRUSTED_MAINTAINER'}" class="author-rep-badge rep-owner">Owner</span>
+                                <span th:if="${r.createdAt != null && !r.createdAt.isEmpty()}" style="margin-left: auto; color: var(--color-fg-subtle); font-size: 11px;" th:text="${r.createdAt}"></span>
+                            </div>
+                        </td>
+                        <!-- Code Change & AI Summary -->
+                        <td>
+                            <div class="summary-diff-preview" th:if="${(r.changeSummaryBefore != null && !r.changeSummaryBefore.isEmpty()) || (r.changeSummaryAfter != null && !r.changeSummaryAfter.isEmpty())}">
+                                <div class="diff-chip diff-chip-was" th:if="${r.changeSummaryBefore != null && !r.changeSummaryBefore.isEmpty()}">
+                                    <span class="diff-tag diff-tag-was">WAS</span>
+                                    <span class="diff-chip-text" th:text="${r.changeSummaryBefore}">Prior implementation</span>
+                                </div>
+                                <div class="diff-chip diff-chip-now" th:if="${r.changeSummaryAfter != null && !r.changeSummaryAfter.isEmpty()}">
+                                    <span class="diff-tag diff-tag-now">NOW</span>
+                                    <span class="diff-chip-text" th:text="${r.changeSummaryAfter}">New implementation</span>
+                                </div>
+                            </div>
+                            <div class="summary-clamp" th:unless="${(r.changeSummaryBefore != null && !r.changeSummaryBefore.isEmpty()) || (r.changeSummaryAfter != null && !r.changeSummaryAfter.isEmpty())}" th:title="${r.fullSummary}" th:text="${r.summary}">
+                                Summary text
+                            </div>
+                        </td>
+                        <!-- Files -->
+                        <td style="text-align: center;">
+                            <span class="files-badge" th:text="${r.filesCount + ' files'}">0 files</span>
+                        </td>
+                        <!-- Status / Decision -->
+                        <td class="status-cell">
+                            <span class="badge-completed" style="display: inline-flex; align-items: center; gap: 4px;">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                <span th:text="${r.status}">DONE</span>
+                            </span>
+                        </td>
+                        <!-- Quick Decision Actions -->
+                        <td class="actions-cell">
+                            <span class="action-button-group">
+                                <span class="badge-completed" style="margin-right: 4px; padding: 3px 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;" title="Triage decision applied">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                    <span th:text="${r.status}">DONE</span>
+                                </span>
+                                <button class="action-btn action-btn-details" 
+                                        th:data-title="${r.title}"
+                                        th:data-pr="${r.pr}"
+                                        th:data-tier="${r.tier}"
+                                        th:data-sec="${r.security}"
+                                        th:data-summary="${r.fullSummary}"
+                                        th:data-findings="${r.findingsJson}"
+                                        th:data-author="${r.author}"
+                                        th:data-rep="${r.authorReputation}"
+                                        th:data-repdetail="${r.authorReputationDetail}"
+                                        th:data-repocontext="${r.repoContext}"
+                                        th:data-before="${r.changeSummaryBefore}"
+                                        th:data-after="${r.changeSummaryAfter}"
+                                        th:data-approve="${r.approveUrl}"
+                                        th:data-changes="${r.changesUrl}"
+                                        th:data-close="${r.closeUrl}"
+                                        onclick="openPrModal(this)"
+                                        title="View full AI assessment and findings">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                    </svg>
+                                    <span>Details</span>
+                                </button>
+                                <a class="action-btn action-btn-approve" th:href="${r.approveUrl}" onclick="executeRowAction(this, event, 'approve')" title="Approve pull request">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                    <span>Approve</span>
+                                </a>
+                                <a class="action-btn action-btn-changes" th:href="${r.changesUrl}" onclick="executeRowAction(this, event, 'request-changes')" title="Request changes on pull request">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                    <span>Changes</span>
+                                </a>
+                                <a class="action-btn action-btn-reject" th:href="${r.closeUrl}" onclick="executeRowAction(this, event, 'close')" title="Close pull request">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                                    </svg>
+                                    <span>Close</span>
+                                </a>
+                            </span>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Empty State for Actioned Decisions -->
+            <div th:if="${actionedCount == 0}" class="empty-state-panel" style="padding: var(--space-8); text-align: center;">
+                <div class="empty-icon-wrap" style="width: 48px; height: 48px; margin: 0 auto var(--space-3); background: #f0fdf4; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #16a34a;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </div>
+                <h3 class="empty-title">No PRs actioned yet</h3>
+                <p class="empty-description" style="max-width: 420px; margin: 0 auto var(--space-4);">When you approve, request changes, or close pull requests from email alerts or the dashboard, they will be tracked in this section.</p>
+                <button class="ui-btn ui-btn-primary" onclick="switchTab('history')">Go to Pull Requests</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Tab 2: On-Demand PR Review ── -->
+    <div id="tab-ondemand" class="tab-pane" style="display: none;">
+        <div class="card-panel">
+            <div class="card-header">
+                <h2 class="card-title">On-Demand Pull Request Triage</h2>
+                <p class="card-desc">Execute heuristics, security scanning, and smart summary pipeline on any GitHub pull request URL immediately.</p>
+            </div>
+
+            <div style="display: flex; gap: var(--space-2); max-width: 680px; margin-bottom: var(--space-4);">
+                <input type="url" id="ondemandUrl" class="ui-input" style="flex: 1; height: 34px;" placeholder="https://github.com/owner/repository/pull/123" aria-label="Pull request URL">
+                <button class="ui-btn ui-btn-primary" id="btnRunTriage" style="height: 34px;" onclick="executeOnDemandTriage()">
+                    <span id="btnTriageText">Analyze PR</span>
+                </button>
+            </div>
+
+            <div id="triageLoading" style="display: none; padding: var(--space-3) 0; color: var(--color-fg-muted); font-size: 12px; align-items: center; gap: 8px;">
+                <svg class="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
+                    <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
+                </svg>
+                <span>Fetching diff, evaluating risk heuristics, and generating summary...</span>
+            </div>
+
+            <div id="triageResultBox" style="display: none; margin-top: var(--space-4);"></div>
+        </div>
+    </div>
+
+    <!-- ── Tab 3: Profile Monitoring Settings ── -->
+    <div id="tab-profile" class="tab-pane" style="display: none;">
+        <div class="card-panel" style="max-width: 640px;">
+            <div class="card-header">
+                <h2 class="card-title">GitHub Profile Auto-Triage Configuration</h2>
+                <p class="card-desc">Configure the background polling daemon to continuously monitor pull requests across your GitHub account.</p>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label" for="profUsername">GitHub Username</label>
+                    <input type="text" id="profUsername" class="ui-input" th:value="${profile.githubUsername}" placeholder="e.g. octocat">
+                    <span class="form-hint">The GitHub account whose repositories will be inspected.</span>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="profEmail">Notification & Triage Alert Email</label>
+                    <div style="display: flex; gap: var(--space-2); align-items: center;">
+                        <input type="email" id="profEmail" class="ui-input" th:value="${profile.notificationEmail != null ? profile.notificationEmail : ''}" placeholder="e.g. yourname@gmail.com" style="flex: 1;">
+                        <button type="button" class="ui-btn ui-btn-outline" onclick="fetchLinkedEmailForUser(document.getElementById('profUsername').value.trim())" title="Fetch email directly from GitHub account">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                            </svg>
+                            <span>Fetch from GitHub</span>
+                        </button>
+                    </div>
+                    <span class="form-hint">Alert emails with one-click Approve / Reject decisions are delivered to this address. If left blank, it auto-detects from GitHub.</span>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="profRepos">Monitored Repositories (Optional)</label>
+                    <input type="text" id="profRepos" class="ui-input" th:value="${profile.monitoredRepos}" placeholder="repo1, owner/repo2">
+                    <span class="form-hint">Comma-separated repository names. If left blank, all repositories for this user are monitored.</span>
+                </div>
+
+                <div class="form-group">
+                    <label class="ui-toggle">
+                        <input type="checkbox" id="profAutoToggle" th:checked="${profile.autoTriageEnabled}">
+                        <span>Permanently enable automatic background triage</span>
+                    </label>
+                </div>
+
+                <div style="margin-top: var(--space-2);">
+                    <button class="ui-btn ui-btn-primary" onclick="saveProfileFull()">Save Configuration</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Tab 4: Browser Extension Setup ── -->
+    <div id="tab-extension" class="tab-pane" style="display: none;">
+        <div class="card-panel" style="max-width: 680px;">
+            <div class="card-header">
+                <h2 class="card-title">Glint Browser Extension (Manifest V3)</h2>
+                <p class="card-desc">Triage both public and private GitHub pull requests directly within GitHub.com using session-level diff extraction.</p>
+            </div>
+
+            <div style="background-color: var(--color-canvas-subtle); border: 1px solid var(--color-border-default); border-radius: var(--radius-md); padding: var(--space-4); margin-bottom: var(--space-4);">
+                <div style="font-weight: 600; font-size: 12px; margin-bottom: var(--space-2);">Installation Instructions</div>
+                <ol style="margin-left: var(--space-4); font-size: 12px; color: var(--color-fg-muted); line-height: 1.8;">
+                    <li>Navigate to <code style="font-family: var(--font-mono); font-size: 11px; background: var(--color-canvas-inset); padding: 1px 4px; border-radius: 3px;">chrome://extensions/</code> in Chrome or Edge.</li>
+                    <li>Toggle <strong>Developer mode</strong> in the top-right corner.</li>
+                    <li>Click <strong>Load unpacked</strong>.</li>
+                    <li>Select the <code style="font-family: var(--font-mono); font-size: 11px; background: var(--color-canvas-inset); padding: 1px 4px; border-radius: 3px;">extension</code> directory from this workspace.</li>
+                    <li>Open any Pull Request on GitHub to view embedded triage badges and actions.</li>
+                </ol>
+            </div>
+
+            <div style="display: flex; gap: var(--space-2);">
+                <a href="/api/history" target="_blank" class="ui-btn">REST History Endpoint</a>
+                <a href="/api/stats" target="_blank" class="ui-btn">REST Stats Endpoint</a>
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<!-- ── Detail Inspection Modal Dialog ── -->
+<div class="modal-overlay" id="prModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" onclick="handleModalBackdropClick(event)">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <div>
+                <div style="display: flex; align-items: center; gap: var(--space-2); margin-bottom: 4px;">
+                    <span id="modalTierBadge" class="tier-badge">TIER</span>
+                    <span id="modalSecBadge" class="sec-tag" style="display:none;">🔒 Security</span>
+                    <span id="modalBugBadge" class="bug-tag" style="display:none;">🐛 Code Bug</span>
+                    <span id="modalPrNumber" style="font-family: var(--font-mono); font-size: 11px; color: var(--color-fg-subtle);"></span>
+                    <a id="modalGitHubLink" href="#" target="_blank" rel="noopener noreferrer" style="font-size: 11px; color: var(--color-primary); text-decoration: none; display: none; align-items: center; gap: 4px; margin-left: 6px; padding: 2px 7px; background: rgba(9, 105, 218, 0.08); border-radius: 4px;" title="Open on GitHub">
+                        <span>Open on GitHub</span>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                            <polyline points="15 3 21 3 21 9"></polyline>
+                            <line x1="10" y1="14" x2="21" y2="3"></line>
+                        </svg>
+                    </a>
+                </div>
+                <h2 id="modalTitle" style="font-size: 14px; font-weight: 600; color: var(--color-fg-default);">PR Title</h2>
+            </div>
+            <button class="modal-close-btn" onclick="closePrModal()" aria-label="Close dialog">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+
+        <div class="modal-body">
+            <!-- Contributor Context Card -->
+            <div id="modalContributorCard" style="display:none; background-color: var(--color-canvas-subtle); border: 1px solid var(--color-border-default); border-radius: var(--radius-md); padding: var(--space-3); margin-bottom: var(--space-3);">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                    <div style="display:flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--color-fg-subtle); letter-spacing: 0.04em;">Contributor Context</span>
+                        <span id="modalAuthorRep" class="rep-pill"></span>
+                    </div>
+                    <span id="modalRepoContext" style="font-family: var(--font-mono); font-size: 11px; color: var(--color-fg-subtle); background: #f1f5f9; padding: 1px 6px; border-radius: 4px;"></span>
+                </div>
+                <div id="modalAuthorDetail" style="font-size: 12px; color: var(--color-fg-muted); line-height: 1.45;"></div>
+            </div>
+
+            <!-- Code-Level Diff Breakdown (What Was Before vs What Changed) -->
+            <div id="modalCodeChangeCard" style="display:none; margin-bottom: var(--space-3);">
+                <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--color-fg-subtle); letter-spacing: 0.04em; margin-bottom: 6px;">Code-Level Diff Breakdown</div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <div id="modalBeforeBox" style="font-size: 12px; line-height: 1.5; color: #7f1d1d; background: #fef2f2; border-left: 3px solid #ef4444; padding: 8px 12px; border-radius: 4px;">
+                        <div style="font-weight: 700; font-size: 11px; text-transform: uppercase; margin-bottom: 2px;">What Was Before</div>
+                        <div id="modalBeforeText"></div>
+                    </div>
+                    <div id="modalAfterBox" style="font-size: 12px; line-height: 1.5; color: #14532d; background: #f0fdf4; border-left: 3px solid #10b981; padding: 8px 12px; border-radius: 4px;">
+                        <div style="font-weight: 700; font-size: 11px; text-transform: uppercase; margin-bottom: 2px;">What Changed in PR</div>
+                        <div id="modalAfterText"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--color-fg-subtle); letter-spacing: 0.04em;">Executive Summary</div>
+                <div id="modalSummary" class="code-block"></div>
+            </div>
+
+            <div>
+                <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--color-fg-subtle); letter-spacing: 0.04em;">Heuristic & Security Findings</div>
+                <div id="modalFindings" class="findings-grid"></div>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="ui-btn" onclick="closePrModal()">Cancel</button>
+            <a id="modalApproveBtn" href="#" class="action-btn action-btn-approve" onclick="executeModalAction(this, event, 'approve')">Approve</a>
+            <a id="modalChangesBtn" href="#" class="action-btn action-btn-changes" onclick="executeModalAction(this, event, 'request-changes')">Request Changes</a>
+            <a id="modalCloseBtn" href="#" class="action-btn action-btn-reject" onclick="executeModalAction(this, event, 'close')">Close PR</a>
+        </div>
+    </div>
 </div>
 
-<footer>
-    glint PR Triage Bot &mdash; <span th:text="${#dates.format(#dates.createNow(), 'yyyy')}">2025</span>
-</footer>
+<script>
+    // Tab Navigation
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-pane').forEach(el => el.style.display = 'none');
+        document.querySelectorAll('.subnav-tab').forEach(el => el.classList.remove('active'));
+
+        const target = document.getElementById('tab-' + tabId);
+        if (target) target.style.display = 'block';
+
+        const btn = Array.from(document.querySelectorAll('.subnav-tab'))
+            .find(b => b.getAttribute('onclick') && b.getAttribute('onclick').includes(tabId));
+        if (btn) btn.classList.add('active');
+    }
+
+    // Filter Logic
+    let activeFilter = 'ALL';
+    function setFilter(tier, btn) {
+        activeFilter = tier;
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        filterHistory();
+    }
+
+    function filterHistory() {
+        const query = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+        const rows = document.querySelectorAll('.pr-row');
+
+        rows.forEach(row => {
+            const tier = row.getAttribute('data-tier') || '';
+            const isSec = row.getAttribute('data-sec') === 'true';
+            const isBug = row.getAttribute('data-bug') === 'true';
+            const isActioned = row.getAttribute('data-actioned') === 'true';
+            const text = row.innerText.toLowerCase();
+
+            const matchesTier = (activeFilter === 'ALL') ||
+                                (activeFilter === tier) ||
+                                (activeFilter === 'SECURITY' && isSec) ||
+                                (activeFilter === 'BUGS' && isBug) ||
+                                (activeFilter === 'DONE' && isActioned);
+
+            const matchesSearch = !query || text.includes(query);
+            row.style.display = (matchesTier && matchesSearch) ? '' : 'none';
+        });
+    }
+
+    // Sync Action
+    async function triggerSyncNow() {
+        const btn = document.getElementById('syncBtn');
+        const origHtml = btn.innerHTML;
+        btn.innerHTML = '<svg class="spinner" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path></svg> <span>Scanning...</span>';
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('/api/profile/sync', { method: 'POST' });
+            const data = await res.json();
+            alert(data.message || 'Sync complete.');
+            window.location.href = '/?user=' + encodeURIComponent(username);
+        } catch (e) {
+            alert('Sync request failed: ' + e.message);
+        } finally {
+            btn.innerHTML = origHtml;
+            btn.disabled = false;
+        }
+    }
+
+    // Auto-resolve GitHub email when username changes
+    let resolveTimeout = null;
+    function setupUsernameEmailResolvers() {
+        const quickUser = document.getElementById('quickUsername');
+        const profUser = document.getElementById('profUsername');
+
+        if (quickUser) {
+            quickUser.addEventListener('input', function() {
+                clearTimeout(resolveTimeout);
+                resolveTimeout = setTimeout(() => {
+                    fetchLinkedEmailForUser(this.value.trim());
+                }, 600);
+            });
+            quickUser.addEventListener('blur', function() {
+                fetchLinkedEmailForUser(this.value.trim());
+            });
+        }
+
+        if (profUser) {
+            profUser.addEventListener('input', function() {
+                clearTimeout(resolveTimeout);
+                resolveTimeout = setTimeout(() => {
+                    fetchLinkedEmailForUser(this.value.trim());
+                }, 600);
+            });
+            profUser.addEventListener('blur', function() {
+                fetchLinkedEmailForUser(this.value.trim());
+            });
+        }
+    }
+
+    async function fetchLinkedEmailForUser(username) {
+        if (!username) return;
+        const quickInput = document.getElementById('quickEmail');
+        const profInput = document.getElementById('profEmail');
+
+        try {
+            const res = await fetch('/api/profile/resolve-email?username=' + encodeURIComponent(username));
+            if (res.ok) {
+                const data = await res.json();
+                if (data.email) {
+                    if (quickInput) quickInput.value = data.email;
+                    if (profInput) profInput.value = data.email;
+                    return;
+                }
+            }
+            if (quickInput && !quickInput.value) {
+                quickInput.placeholder = 'Enter email (e.g. you@gmail.com)';
+            }
+            if (profInput && !profInput.value) {
+                profInput.placeholder = 'Enter email (e.g. you@gmail.com)';
+            }
+        } catch (e) {
+            console.warn('Could not auto-resolve GitHub email: ' + e.message);
+        }
+    }
+
+    // Quick Profile Save
+    async function saveProfileQuick() {
+        const username = document.getElementById('quickUsername').value.trim();
+        const email = document.getElementById('quickEmail') ? document.getElementById('quickEmail').value.trim() : '';
+        const active = document.getElementById('quickAutoToggle').checked;
+
+        if (!username) {
+            alert('Please enter a GitHub username.');
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/profile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    githubUsername: username,
+                    notificationEmail: email,
+                    autoTriageEnabled: active
+                })
+            });
+            if (res.ok) {
+                const updated = await res.json();
+                if (updated.notificationEmail) {
+                    const quickEmail = document.getElementById('quickEmail');
+                    if (quickEmail) quickEmail.value = updated.notificationEmail;
+                }
+                alert('Profile saved! Alert recipient email: ' + (updated.notificationEmail || 'Auto-detected'));
+                window.location.href = '/?user=' + encodeURIComponent(username);
+            } else {
+                alert('Error updating profile settings.');
+            }
+        } catch (e) {
+            alert('Request failed: ' + e.message);
+        }
+    }
+
+    // Full Profile Save
+    async function saveProfileFull() {
+        const username = document.getElementById('profUsername').value.trim();
+        const email = document.getElementById('profEmail') ? document.getElementById('profEmail').value.trim() : '';
+        const repos = document.getElementById('profRepos').value.trim();
+        const active = document.getElementById('profAutoToggle').checked;
+
+        if (!username) {
+            alert('Please enter a GitHub username.');
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/profile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    githubUsername: username,
+                    notificationEmail: email,
+                    monitoredRepos: repos,
+                    autoTriageEnabled: active
+                })
+            });
+            if (res.ok) {
+                const updated = await res.json();
+                alert('Profile configuration updated! Alert recipient email: ' + (updated.notificationEmail || 'Auto-detected'));
+                window.location.href = '/?user=' + encodeURIComponent(username);
+            } else {
+                alert('Error saving configuration.');
+            }
+        } catch (e) {
+            alert('Request failed: ' + e.message);
+        }
+    }
+
+    // Send Test Triage Email directly to Gmail
+    async function sendTestTriageEmail() {
+        const btn = document.getElementById('btnTestEmail');
+        const origHtml = btn ? btn.innerHTML : '';
+        if (btn) {
+            btn.innerHTML = '<svg class="spinner" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path></svg> <span>Sending...</span>';
+            btn.disabled = true;
+        }
+
+        try {
+            const username = document.getElementById('quickUsername').value.trim();
+            const email = document.getElementById('quickEmail') ? document.getElementById('quickEmail').value.trim() : '';
+            let url = '/api/profile/test-email?';
+            if (username) url += 'username=' + encodeURIComponent(username) + '&';
+            if (email) url += 'email=' + encodeURIComponent(email);
+            const res = await fetch(url, { method: 'POST' });
+            const data = await res.json();
+            if (res.ok && data.status === 'SUCCESS') {
+                alert('Triage decision email sent directly to ' + data.email + '!\nCheck your Gmail inbox to Approve or Reject.');
+            } else {
+                alert(data.message || 'Failed to send test email.');
+            }
+        } catch (e) {
+            alert('Request failed: ' + e.message);
+        } finally {
+            if (btn) {
+                btn.innerHTML = origHtml;
+                btn.disabled = false;
+            }
+        }
+    }
+
+    // Initialize resolvers on DOM load
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupUsernameEmailResolvers);
+    } else {
+        setupUsernameEmailResolvers();
+    }
+
+    // On-Demand Triage Execution
+    async function executeOnDemandTriage() {
+        const url = document.getElementById('ondemandUrl').value.trim();
+        if (!url) {
+            alert('Please provide a valid GitHub pull request URL.');
+            return;
+        }
+
+        const btn = document.getElementById('btnRunTriage');
+        const loader = document.getElementById('triageLoading');
+        const box = document.getElementById('triageResultBox');
+
+        btn.disabled = true;
+        loader.style.display = 'flex';
+        box.style.display = 'none';
+
+        try {
+            const res = await fetch('/api/triage', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: url })
+            });
+            const data = await res.json();
+            loader.style.display = 'none';
+            btn.disabled = false;
+
+            if (res.ok && data.status === 'SUCCESS') {
+                box.innerHTML = `
+                    <div style="background-color: var(--color-canvas-subtle); border: 1px solid var(--color-border-default); border-radius: var(--radius-md); padding: var(--space-4);">
+                        <div style="display:flex; align-items:center; gap:var(--space-2); margin-bottom: var(--space-3);">
+                            <span class="tier-badge ${data.tier}">${data.tier}</span>
+                            <span style="font-family: var(--font-mono); font-weight: 600;">${data.owner}/${data.repo} #${data.prNumber}</span>
+                        </div>
+                        <div class="code-block">${escapeHtml(data.summary || '')}</div>
+                        <div style="display:flex; gap:var(--space-2); margin-top: var(--space-3);">
+                            ${data.approveUrl ? `<a href="${data.approveUrl}" class="ui-btn ui-btn-sm ui-btn-approve">Approve</a>` : ''}
+                            ${data.rejectUrl ? `<a href="${data.rejectUrl}" class="ui-btn ui-btn-sm ui-btn-reject">Close</a>` : ''}
+                            <a href="/" class="ui-btn ui-btn-sm">View in Table</a>
+                        </div>
+                    </div>
+                `;
+                box.style.display = 'block';
+            } else {
+                box.innerHTML = `<div style="color: var(--color-danger-fg); background-color: var(--color-danger-bg); border: 1px solid var(--color-danger-border); padding: var(--space-3); border-radius: var(--radius-md); font-size: 12px;">${escapeHtml(data.message || data.error || 'Triage execution failed.')}</div>`;
+                box.style.display = 'block';
+            }
+        } catch (e) {
+            loader.style.display = 'none';
+            btn.disabled = false;
+            alert('Triage error: ' + e.message);
+        }
+    }
+
+    // Modal Handling
+    function openPrModal(btn) {
+        const title = btn.getAttribute('data-title');
+        const pr = btn.getAttribute('data-pr');
+        const tier = btn.getAttribute('data-tier') || 'UNKNOWN';
+        const sec = btn.getAttribute('data-sec') === 'true';
+        const summary = btn.getAttribute('data-summary');
+        const findingsRaw = btn.getAttribute('data-findings');
+        const approve = btn.getAttribute('data-approve');
+        const changes = btn.getAttribute('data-changes');
+        const close = btn.getAttribute('data-close');
+
+        const rep = btn.getAttribute('data-rep');
+        const repDetail = btn.getAttribute('data-repdetail');
+        const repoContext = btn.getAttribute('data-repocontext');
+        const before = btn.getAttribute('data-before');
+        const after = btn.getAttribute('data-after');
+
+        document.getElementById('modalTitle').innerText = title || pr;
+        document.getElementById('modalPrNumber').innerText = pr;
+
+        const ghLink = document.getElementById('modalGitHubLink');
+        if (ghLink) {
+            const parts = (pr || '').match(/([^\s]+)\s*#(\d+)/);
+            if (parts) {
+                ghLink.href = 'https://github.com/' + parts[1] + '/pull/' + parts[2];
+                ghLink.style.display = 'inline-flex';
+            } else {
+                ghLink.style.display = 'none';
+            }
+        }
+
+        const tierBadge = document.getElementById('modalTierBadge');
+        tierBadge.innerText = tier;
+        tierBadge.className = 'tier-badge ' + tier;
+
+        const secBadge = document.getElementById('modalSecBadge');
+        secBadge.style.display = sec ? 'inline-flex' : 'none';
+
+        // Contributor Context Card
+        const contribCard = document.getElementById('modalContributorCard');
+        if (contribCard) {
+            if (rep || repDetail || repoContext) {
+                const repPill = document.getElementById('modalAuthorRep');
+                if (repPill) {
+                    if (rep) {
+                        repPill.className = 'rep-pill ' + rep;
+                        repPill.innerText = rep.replace(/_/g, ' ');
+                        repPill.style.display = 'inline-flex';
+                    } else {
+                        repPill.style.display = 'none';
+                    }
+                }
+                const repoTag = document.getElementById('modalRepoContext');
+                if (repoTag) {
+                    if (repoContext) {
+                        repoTag.innerText = repoContext;
+                        repoTag.style.display = 'inline-block';
+                    } else {
+                        repoTag.style.display = 'none';
+                    }
+                }
+                const detailEl = document.getElementById('modalAuthorDetail');
+                if (detailEl) {
+                    detailEl.innerText = repDetail || 'Contributor history evaluated.';
+                }
+                contribCard.style.display = 'block';
+            } else {
+                contribCard.style.display = 'none';
+            }
+        }
+
+        // Code Change Breakdown Card
+        const codeChangeCard = document.getElementById('modalCodeChangeCard');
+        if (codeChangeCard) {
+            if (before || after) {
+                const beforeBox = document.getElementById('modalBeforeBox');
+                if (beforeBox) {
+                    if (before) {
+                        document.getElementById('modalBeforeText').innerText = before;
+                        beforeBox.style.display = 'block';
+                    } else {
+                        beforeBox.style.display = 'none';
+                    }
+                }
+                const afterBox = document.getElementById('modalAfterBox');
+                if (afterBox) {
+                    if (after) {
+                        document.getElementById('modalAfterText').innerText = after;
+                        afterBox.style.display = 'block';
+                    } else {
+                        afterBox.style.display = 'none';
+                    }
+                }
+                codeChangeCard.style.display = 'block';
+            } else {
+                codeChangeCard.style.display = 'none';
+            }
+        }
+
+        document.getElementById('modalSummary').innerText = summary || 'No summary available.';
+
+        const findingsBox = document.getElementById('modalFindings');
+        findingsBox.innerHTML = '';
+        let hasBugInModal = false;
+        try {
+            const findings = JSON.parse(findingsRaw || '[]');
+            if (findings.length === 0) {
+                findingsBox.innerHTML = '<div style="color: var(--color-fg-subtle); font-size: 12px;">No critical or high-risk findings identified for this pull request.</div>';
+            } else {
+                findings.forEach(f => {
+                    const isBug = f.category === 'BUG_DETECTION';
+                    if (isBug) hasBugInModal = true;
+                    const el = document.createElement('div');
+                    el.className = 'finding-card ' + (f.severity || 'LOW');
+                    if (isBug) {
+                        el.style.borderLeftColor = '#ef4444';
+                        el.style.backgroundColor = '#fff5f5';
+                    }
+                    el.innerHTML = `
+                        <div class="finding-meta">
+                            <span style="${isBug ? 'color:#b91c1c; font-weight:700;' : ''}">${isBug ? '\uD83D\uDC1B CODE BUG' : escapeHtml(f.category || 'FINDING')}</span>
+                            <span style="font-size: 11px;">${escapeHtml(f.severity || 'INFO')}</span>
+                        </div>
+                        <div>${escapeHtml(f.message || '')}</div>
+                        ${f.suggestion ? `<div class="finding-suggestion">Recommendation: ${escapeHtml(f.suggestion)}</div>` : ''}
+                        <div class="finding-path">${escapeHtml(f.filePath || '')}${f.lineNumber ? ':' + f.lineNumber : ''}</div>
+                    `;
+                    findingsBox.appendChild(el);
+                });
+            }
+        } catch (e) {
+            findingsBox.innerHTML = '<div style="color: var(--color-fg-subtle);">Could not parse findings array.</div>';
+        }
+
+        const modalBugBadge = document.getElementById('modalBugBadge');
+        if (modalBugBadge) {
+            modalBugBadge.style.display = hasBugInModal ? 'inline-flex' : 'none';
+        }
+
+        document.getElementById('modalApproveBtn').href = approve || '#';
+        document.getElementById('modalChangesBtn').href = changes || '#';
+        document.getElementById('modalCloseBtn').href = close || '#';
+
+        document.getElementById('prModal').style.display = 'flex';
+    }
+
+    function closePrModal() {
+        document.getElementById('prModal').style.display = 'none';
+    }
+
+    function handleModalBackdropClick(event) {
+        if (event.target === document.getElementById('prModal')) {
+            closePrModal();
+        }
+    }
+
+    // Keyboard accessibility: Escape key closes modal
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closePrModal();
+        }
+    });
+
+    function escapeHtml(s) {
+        if (!s) return '';
+        return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // ── Dynamic Account Switching & History Scoping ──
+    function handleAccountSwitch() {
+        const input = document.getElementById('quickUsername');
+        const user = input ? input.value.trim() : '';
+        if (!user) return;
+        loadUserHistory(user);
+        fetchLinkedEmailForUser(user);
+        window.history.pushState(null, '', '/?user=' + encodeURIComponent(user));
+    }
+
+    async function loadUserHistory(user) {
+        if (!user) return;
+        const wrapper = document.getElementById('historyTableWrapper');
+        if (wrapper) {
+            wrapper.style.opacity = '0.5';
+        }
+
+        try {
+            const [historyRes, statsRes] = await Promise.all([
+                fetch('/api/history?user=' + encodeURIComponent(user)),
+                fetch('/api/stats?user=' + encodeURIComponent(user))
+            ]);
+
+            if (statsRes.ok) {
+                const stats = await statsRes.json();
+                updateKpiMetrics(stats);
+            }
+
+            if (historyRes.ok) {
+                const historyData = await historyRes.json();
+                renderHistoryRows(historyData, user);
+            }
+        } catch (e) {
+            console.error('Error loading account history:', e);
+        } finally {
+            if (wrapper) {
+                wrapper.style.opacity = '1';
+            }
+        }
+    }
+
+    function updateKpiMetrics(stats) {
+        const total = stats.totalCount ?? stats.total ?? 0;
+        const red = stats.redCount ?? stats.red ?? 0;
+        const yellow = stats.yellowCount ?? stats.yellow ?? 0;
+        const green = stats.greenCount ?? stats.green ?? 0;
+        const actioned = stats.actionedCount ?? stats.actioned ?? 0;
+
+        document.querySelectorAll('.tab-counter').forEach(el => el.innerText = total);
+        const metricValues = document.querySelectorAll('.metric-cell .metric-value');
+        if (metricValues.length >= 5) {
+            metricValues[0].innerText = total;
+            metricValues[1].innerText = red;
+            metricValues[2].innerText = yellow;
+            metricValues[3].innerText = green;
+            metricValues[4].innerText = actioned;
+        }
+    }
+
+    function renderHistoryRows(rows, user) {
+        const wrapper = document.getElementById('historyTableWrapper');
+        if (!wrapper) return;
+
+        if (!rows || rows.length === 0) {
+            wrapper.innerHTML = `
+                <div id="emptyContainer" class="table-container">
+                    <div class="empty-state">
+                        <div class="empty-icon" aria-hidden="true">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="16" y1="13" x2="8" y2="13"></line>
+                                <line x1="16" y1="17" x2="8" y2="17"></line>
+                                <polyline points="10 9 9 9 8 9"></polyline>
+                            </svg>
+                        </div>
+                        <h3 class="empty-title">${user ? 'No PRs analyzed yet for @' + escapeHtml(user) : 'No PRs analyzed yet.'}</h3>
+                        <p class="empty-description">${user ? 'No pull requests analyzed for <strong>@' + escapeHtml(user) + '</strong> yet. Trigger a sync or run an on-demand triage to begin automated code analysis.' : 'Enter your GitHub username above and click <strong>Switch / Load</strong> to view your PR triage history.'}</p>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+
+        let rowsHtml = '';
+        rows.forEach(r => {
+            const repBadge = r.authorReputation ? `
+                <span class="rep-pill ${escapeHtml(r.authorReputation)}" title="${escapeHtml(r.authorReputationDetail || '')}">
+                    ${escapeHtml(r.authorReputation.replace(/_/g, ' '))}
+                </span>
+            ` : '';
+
+            const diffPreview = (r.changeSummaryBefore || r.changeSummaryAfter) ? `
+                <div class="code-diff-preview">
+                    ${r.changeSummaryBefore ? `<div class="diff-before-pill"><span class="badge-prev">Was</span> <span>${escapeHtml(r.changeSummaryBefore)}</span></div>` : ''}
+                    ${r.changeSummaryAfter ? `<div class="diff-after-pill"><span class="badge-new-code">Now</span> <span>${escapeHtml(r.changeSummaryAfter)}</span></div>` : ''}
+                </div>
+            ` : `<div class="summary-clamp" title="${escapeHtml(r.fullSummary || r.summary || '')}">${escapeHtml(r.summary || '')}</div>`;
+
+            const actionButtons = `
+                <span class="action-button-group">
+                    ${r.actionTaken ? `
+                        <span class="badge-completed" style="margin-right: 4px; padding: 3px 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;" title="Triage decision applied">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span>${escapeHtml(r.status || ('ACTION' + 'ED'))}</span>
+                        </span>
+                    ` : ''}
+                    <button class="action-btn action-btn-details"
+                            data-title="${escapeHtml(r.title || '')}"
+                            data-pr="${escapeHtml(r.owner + '/' + r.repo + ' #' + r.prNumber)}"
+                            data-tier="${escapeHtml(r.tier || 'GREEN')}"
+                            data-sec="${r.securityFlag ? 'true' : 'false'}"
+                            data-summary="${escapeHtml(r.fullSummary || r.summary || '')}"
+                            data-findings="${escapeHtml(r.findingsJson || '[]')}"
+                            data-author="${escapeHtml(r.author || '')}"
+                            data-rep="${escapeHtml(r.authorReputation || '')}"
+                            data-repdetail="${escapeHtml(r.authorReputationDetail || '')}"
+                            data-repocontext="${escapeHtml(r.repoContext || '')}"
+                            data-before="${escapeHtml(r.changeSummaryBefore || '')}"
+                            data-after="${escapeHtml(r.changeSummaryAfter || '')}"
+                            data-approve="${escapeHtml(r.approveUrl || '')}"
+                            data-changes="${escapeHtml(r.changesUrl || '')}"
+                            data-close="${escapeHtml(r.closeUrl || '')}"
+                            onclick="openPrModal(this)"
+                            title="View full AI assessment and findings">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                        <span>Details</span>
+                    </button>
+                    ${r.approveUrl ? `<a class="action-btn action-btn-approve" href="${escapeHtml(r.approveUrl)}" onclick="executeRowAction(this, event, 'approve')" title="Approve pull request"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Approve</span></a>` : ''}
+                    ${r.changesUrl ? `<a class="action-btn action-btn-changes" href="${escapeHtml(r.changesUrl)}" onclick="executeRowAction(this, event, 'request-changes')" title="Request changes"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg><span>Changes</span></a>` : ''}
+                    ${r.closeUrl ? `<a class="action-btn action-btn-reject" href="${escapeHtml(r.closeUrl)}" onclick="executeRowAction(this, event, 'close')" title="Close PR"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg><span>Close</span></a>` : ''}
+                </span>
+            `;
+
+            const hasBugs = r.bugFlag || (r.findingsJson && r.findingsJson.includes('"category":"BUG_DETECTION"'));
+            rowsHtml += `
+                <tr data-tier="${escapeHtml(r.tier || 'GREEN')}" data-sec="${r.securityFlag ? 'true' : 'false'}" data-bug="${hasBugs ? 'true' : 'false'}" data-actioned="${r.actionTaken ? 'true' : 'false'}" class="pr-row">
+                    <td>
+                        <span class="tier-badge ${escapeHtml(r.tier || 'GREEN')}">${escapeHtml(r.tier || 'GREEN')}</span>
+                        ${r.securityFlag ? '<div><span class="sec-tag">🔒 Security</span></div>' : ''}
+                        ${hasBugs ? '<div><span class="bug-tag">🐛 Code Bug</span></div>' : ''}
+                    </td>
+                    <td>
+                        <div class="pr-title-row">
+                            <a href="javascript:void(0)" onclick="openPrModal(this)" class="pr-title-link"
+                               data-title="${escapeHtml(r.title || '')}"
+                               data-pr="${escapeHtml(r.owner + '/' + r.repo + ' #' + r.prNumber)}"
+                               data-tier="${escapeHtml(r.tier || 'GREEN')}"
+                               data-sec="${r.securityFlag ? 'true' : 'false'}"
+                               data-summary="${escapeHtml(r.fullSummary || r.summary || '')}"
+                               data-findings="${escapeHtml(r.findingsJson || '[]')}"
+                               data-author="${escapeHtml(r.author || '')}"
+                               data-rep="${escapeHtml(r.authorReputation || '')}"
+                               data-repdetail="${escapeHtml(r.authorReputationDetail || '')}"
+                               data-repocontext="${escapeHtml(r.repoContext || '')}"
+                               data-before="${escapeHtml(r.changeSummaryBefore || '')}"
+                               data-after="${escapeHtml(r.changeSummaryAfter || '')}"
+                               data-approve="${escapeHtml(r.approveUrl || '')}"
+                               data-changes="${escapeHtml(r.changesUrl || '')}"
+                               data-close="${escapeHtml(r.closeUrl || '')}"
+                               title="Click to view full PR triage assessment">${escapeHtml(r.title || 'PR #' + r.prNumber)}</a>
+                            <a href="https://github.com/${escapeHtml(r.owner)}/${escapeHtml(r.repo)}/pull/${r.prNumber}" target="_blank" rel="noopener noreferrer" class="github-ext-link" title="Open on GitHub (external)">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                    <polyline points="15 3 21 3 21 9"></polyline>
+                                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                                </svg>
+                            </a>
+                        </div>
+                        <div class="pr-metadata">
+                            <span class="repo-tag">${escapeHtml(r.owner)}/${escapeHtml(r.repo)} #${r.prNumber}</span>
+                            <span>&bull;</span>
+                            <span>@${escapeHtml(r.author || 'unknown')}</span>
+                            ${repBadge}
+                            <span>&bull;</span>
+                            <span>${escapeHtml(r.createdAt ? new Date(r.createdAt).toLocaleDateString() : 'recently')}</span>
+                        </div>
+                    </td>
+                    <td class="table-summary">${diffPreview}</td>
+                    <td style="text-align: center;"><span class="files-badge">${r.filesChangedCount || 0} files</span></td>
+                    <td class="status-cell">
+                        ${r.actionTaken ? ('<span class="badge-completed">' + 'ACTION' + 'ED</span>') : `<span class="badge-new">${escapeHtml(r.status || 'NEW')}</span>`}
+                    </td>
+                    <td class="actions-cell">${actionButtons}</td>
+                </tr>
+            `;
+        });
+
+        wrapper.innerHTML = `
+            <div id="tableContainer" class="table-container">
+                <table class="data-table" aria-label="Pull Request Triage History">
+                    <thead>
+                    <tr>
+                        <th style="width: 120px;">Priority & Risk</th>
+                        <th style="min-width: 250px;">Pull Request</th>
+                        <th class="table-summary" style="min-width: 340px;">Code Change &amp; AI Summary</th>
+                        <th style="width: 85px; text-align: center;">Scope</th>
+                        <th style="width: 100px; text-align: center;">Status</th>
+                        <th style="width: 310px; min-width: 310px; text-align: right;">Quick Decisions</th>
+                    </tr>
+                    </thead>
+                    <tbody id="prTableBody">
+                        ${rowsHtml}
+                    </tbody>
+                </table>
+            </div>
+        `;
+        filterHistory();
+    }
+
+    // ── Floating Toast System ──
+    function showToast(title, message, type = 'success') {
+        let container = document.getElementById('toastContainer');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toastContainer';
+            container.className = 'toast-container';
+            document.body.appendChild(container);
+        }
+
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+
+        const iconSvg = type === 'success'
+            ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>'
+            : (type === 'error'
+                ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>'
+                : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>');
+
+        toast.innerHTML = `
+            ${iconSvg}
+            <div style="flex: 1;">
+                <div style="font-weight: 600; font-size: 13px; color: #ffffff;">${escapeHtml(title)}</div>
+                <div style="font-size: 12px; color: #cbd5e1; margin-top: 2px;">${escapeHtml(message)}</div>
+            </div>
+        `;
+
+        container.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(10px) scale(0.95)';
+            setTimeout(() => toast.remove(), 250);
+        }, 3800);
+    }
+
+    // ── In-Place Quick Decisions (AJAX) ──
+    async function executeRowAction(element, event, actionType) {
+        if (event && (event.ctrlKey || event.metaKey || event.button === 1)) {
+            return; // Allow open in new tab
+        }
+        if (event) {
+            event.preventDefault();
+        }
+
+        const url = element.getAttribute('href');
+        if (!url || url === '#' || url.startsWith('javascript')) {
+            return;
+        }
+
+        const tr = element.closest('tr');
+        const actionsCell = element.closest('.actions-cell');
+        const originalContent = element.innerHTML;
+        element.innerHTML = '<svg class="spinner" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path></svg>';
+        element.style.pointerEvents = 'none';
+
+        try {
+            const res = await fetch(url);
+            const text = await res.text();
+
+            if (res.ok) {
+                if (tr) {
+                    tr.setAttribute('data-actioned', 'true');
+                    const statusCell = tr.querySelector('.status-cell');
+                    if (statusCell) {
+                        statusCell.innerHTML = '<span class="badge-completed">' + 'ACTION' + 'ED</span>';
+                    }
+                }
+
+                if (actionsCell) {
+                    const group = actionsCell.querySelector('.action-button-group');
+                    if (group && !group.querySelector('.badge-completed')) {
+                        const badge = document.createElement('span');
+                        badge.className = 'badge-completed';
+                        badge.style.cssText = 'margin-right: 4px; padding: 3px 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;';
+                        badge.title = 'Triage decision applied';
+                        badge.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg><span>` + 'ACTION' + `ED</span>`;
+                        group.insertBefore(badge, group.firstChild);
+                    }
+                }
+
+                element.innerHTML = originalContent;
+                element.style.pointerEvents = '';
+
+                const kpiDec = document.getElementById('kpiDecisionsCount');
+                if (kpiDec) {
+                    const cur = parseInt(kpiDec.innerText, 10) || 0;
+                    kpiDec.innerText = cur + 1;
+                }
+                const subnavDec = document.getElementById('tabCounterActioned');
+                if (subnavDec) {
+                    const cur = parseInt(subnavDec.innerText, 10) || 0;
+                    subnavDec.innerText = cur + 1;
+                }
+                const bannerDec = document.getElementById('actionedBannerCount');
+                if (bannerDec) {
+                    const cur = parseInt(bannerDec.innerText, 10) || 0;
+                    bannerDec.innerText = cur + 1;
+                }
+
+                let friendlyAction = actionType ? actionType.toUpperCase() : 'ACTION';
+                showToast('Action Completed', `PR decision applied: ${friendlyAction}. All actions remain accessible.`, 'success');
+            } else {
+                let msg = 'Server returned status ' + res.status;
+                const match = text.match(/<h2>(.*?)<\/h2>/i);
+                if (match && match[1]) {
+                    msg = match[1].replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+                }
+                showToast('Action Notice', msg, 'error');
+                element.innerHTML = originalContent;
+                element.style.pointerEvents = '';
+            }
+        } catch (err) {
+            showToast('Request Failed', err.message, 'error');
+            element.innerHTML = originalContent;
+            element.style.pointerEvents = '';
+        }
+    }
+
+    // ── Modal Action Handler ──
+    async function executeModalAction(element, event, actionType) {
+        if (event && (event.ctrlKey || event.metaKey || event.button === 1)) {
+            return;
+        }
+        if (event) {
+            event.preventDefault();
+        }
+
+        const url = element.getAttribute('href');
+        if (!url || url === '#' || url.startsWith('javascript')) {
+            return;
+        }
+
+        const prTitle = document.getElementById('modalPrNumber').innerText;
+        closePrModal();
+
+        const rows = document.querySelectorAll('.pr-row');
+        let matchedBtn = null;
+        rows.forEach(r => {
+            if (r.innerText.includes(prTitle)) {
+                const btn = r.querySelector(`.action-btn-${actionType === 'close' ? 'reject' : actionType}`);
+                if (btn) matchedBtn = btn;
+            }
+        });
+
+        if (matchedBtn) {
+            executeRowAction(matchedBtn, null, actionType);
+        } else {
+            try {
+                const res = await fetch(url);
+                if (res.ok) {
+                    showToast('Action Completed', `Action '${actionType}' recorded.`, 'success');
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    showToast('Action Failed', 'HTTP ' + res.status, 'error');
+                }
+            } catch (err) {
+                showToast('Request Error', err.message, 'error');
+            }
+        }
+    }
+</script>
+
+<div id="toastContainer" class="toast-container"></div>
 
 </body>
 </html>

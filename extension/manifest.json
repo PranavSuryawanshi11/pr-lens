@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Glint · AI GitHub PR Triage",
+  "version": "1.0.0",
+  "description": "Zero-config automated PR detection, AI code analysis, risk scoring, and 1-click decision actions for GitHub pull requests.",
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://github.com/*",
+    "http://localhost:8080/*",
+    "http://127.0.0.1:8080/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Glint PR Triage"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://github.com/*"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}

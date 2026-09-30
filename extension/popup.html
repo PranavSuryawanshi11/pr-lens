@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Glint PR Triage</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="18" cy="18" r="3"></circle>
+          <circle cx="6" cy="6" r="3"></circle>
+          <path d="M13 6h3a2 2 0 0 1 2 2v7"></path>
+          <line x1="6" y1="9" x2="6" y2="21"></line>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-title">Glint Triage</div>
+        <div class="status-badge" id="backendStatus">Checking engine...</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Profile Configuration Section -->
+  <section class="section">
+    <div class="section-title">Autonomous Monitoring</div>
+    <div class="field-group">
+      <input type="text" id="ghUsername" placeholder="GitHub username (e.g. octocat)" class="input-text" spellcheck="false">
+      <input type="text" id="notifyEmail" placeholder="GitHub Linked Email (Auto-detected or enter fallback)" class="input-text" title="Auto-detected from GitHub or enter fallback email" spellcheck="false">
+      <label class="toggle-row">
+        <input type="checkbox" id="autoTriageToggle">
+        <span class="toggle-text">Enable automatic PR detection</span>
+      </label>
+      <button id="saveProfileBtn" class="btn btn-primary">Save Configuration</button>
+    </div>
+  </section>
+
+  <!-- Quick Actions Section -->
+  <section class="section">
+    <div class="section-title">Active PR Actions</div>
+    <div class="btn-stack">
+      <button id="triageCurrentTabBtn" class="btn btn-action">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+        </svg>
+        <span>Triage Active Tab PR</span>
+      </button>
+      <button id="syncNowBtn" class="btn btn-secondary">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+        </svg>
+        <span>Sync GitHub Repositories</span>
+      </button>
+      <a href="http://localhost:8080/" target="_blank" class="btn btn-link">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></line>
+          <line x1="3" y1="9" x2="21" y2="9"></line>
+          <line x1="9" y1="21" x2="9" y2="9"></line>
+        </svg>
+        <span>Open Console Dashboard</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- Recent History Section -->
+  <section class="section">
+    <div class="section-title">Recent Triaged Pull Requests</div>
+    <div id="recentList" class="recent-list">
+      <div class="empty-text">Loading recent history...</div>
+    </div>
+  </section>
+
+  <script src="popup.js"></script>
+</body>
+</html>
