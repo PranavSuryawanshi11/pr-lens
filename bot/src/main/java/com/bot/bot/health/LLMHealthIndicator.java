@@ -43,7 +43,8 @@ public class LLMHealthIndicator implements HealthIndicator {
 
         ProviderConfig primary = providers.get(0);
         try {
-            String url = primary.getBaseUrl().replaceAll("/+$", "") + "/v1/models";
+            String base = primary.getBaseUrl().replaceAll("/+$", "");
+            String url = base.endsWith("/v1") ? (base + "/models") : (base + "/v1/models");
             webClient.get()
                     .uri(url)
                     .headers(headers -> {
@@ -63,12 +64,13 @@ public class LLMHealthIndicator implements HealthIndicator {
                     .build();
 
         } catch (Exception e) {
-            log.warn("LLM health check failed for {} at {}: {}",
+            log.info("LLM provider {} at {} is offline ({}); heuristics engine will handle reviews.",
                     primary.getName(), primary.getBaseUrl(), e.getMessage());
-            return Health.down()
+            return Health.up()
                     .withDetail("provider", primary.getName())
                     .withDetail("baseUrl", primary.getBaseUrl())
-                    .withDetail("error", e.getClass().getSimpleName() + ": " + e.getMessage())
+                    .withDetail("status", "offline")
+                    .withDetail("mode", "heuristics-fallback")
                     .build();
         }
     }

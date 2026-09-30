@@ -54,7 +54,11 @@ public class ReviewPublisher {
 
         boolean labelsEnabled = configService.resolve(installationId).labelsEnabled();
         return gitHubApiClient.submitReview(owner, repo, prNumber, summary, event, inlineComments, installationId)
-                .then(applyTriageLabels(owner, repo, prNumber, prContext, installationId, labelsEnabled));
+                .then(applyTriageLabels(owner, repo, prNumber, prContext, installationId, labelsEnabled))
+                .onErrorResume(e -> {
+                    log.info("GitHub review/labeling skipped or restricted: {} (analysis is saved locally in database & dashboard)", e.getMessage());
+                    return Mono.empty();
+                });
     }
 
     /**

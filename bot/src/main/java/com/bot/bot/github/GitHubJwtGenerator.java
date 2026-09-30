@@ -1,7 +1,6 @@
 package com.bot.bot.github;
 
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -14,7 +13,6 @@ import java.nio.file.Paths;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.RSAPrivateCrtKeySpec;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Date;
@@ -36,6 +34,11 @@ public class GitHubJwtGenerator {
      * Tokens are cached until 60 seconds before expiry to handle clock skew.
      */
     public String generateAppToken() {
+        if (!gitHubProperties.hasAppCredentials()) {
+            throw new IllegalStateException("GitHub App credentials are not configured or private key file is missing: "
+                    + gitHubProperties.getPrivateKeyPath());
+        }
+
         if (Instant.now().isBefore(tokenExpiry.minusSeconds(CACHE_BUFFER_SECONDS))
                 && cachedToken != null) {
             return cachedToken;
@@ -54,10 +57,10 @@ public class GitHubJwtGenerator {
                 Instant expiration = now.plusSeconds(TOKEN_EXPIRY_SECONDS);
 
                 String token = Jwts.builder()
-                        .setIssuedAt(Date.from(now))
-                        .setExpiration(Date.from(expiration))
-                        .claim("iss", gitHubProperties.getAppId())
-                        .signWith(key, SignatureAlgorithm.RS256)
+                        .issuedAt(Date.from(now))
+                        .expiration(Date.from(expiration))
+                        .issuer(gitHubProperties.getAppId())
+                        .signWith(key, Jwts.SIG.RS256)
                         .compact();
 
                 cachedToken = token;

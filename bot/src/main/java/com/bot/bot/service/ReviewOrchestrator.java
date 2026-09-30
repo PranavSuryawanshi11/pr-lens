@@ -61,11 +61,77 @@ public class ReviewOrchestrator {
     }
 
     /**
+     * Triage any PR on demand by owner, repository name, and PR number.
+     * Works on any GitHub account via GitHub API without pre-configuring a GitHub App.
+     */
+    public Mono<PrAnalysis> triagePullRequest(String owner, String repo, int prNumber) {
+        log.info("Starting on-demand PR triage for {}/{}/PR#{}", owner, repo, prNumber);
+        return gitHubApiClient.fetchPullRequestDetails(owner, repo, prNumber)
+                .flatMap(prContext -> processPullRequestContext(prContext)
+                        .then(Mono.fromCallable(() ->
+                                prAnalysisRepository.findLatest(owner, repo, prNumber).orElse(null))));
+    }
+
+    /**
+     * Triage PR directly with supplied diff (e.g. from browser extension session on private repos).
+     * Works without needing any Personal Access Tokens or GitHub Developer Settings!
+     */
+    public Mono<PrAnalysis> triagePullRequestWithDiff(String owner, String repo, int prNumber,
+                                                     String title, String author, String diff) {
+        long priorPrs = (author != null && !author.isBlank())
+                ? prAnalysisRepository.countPriorPrsByAuthor(owner, repo, author, prNumber)
+                : 0;
+        String assoc = priorPrs > 0 ? "CONTRIBUTOR" : "NONE";
+        var rep = GitHubApiClient.resolveAuthorReputation(owner, author, assoc);
+        if (priorPrs > 0 && !"TRUSTED_MAINTAINER".equalsIgnoreCase(rep.reputation())) {
+            rep = new GitHubApiClient.AuthorReputationInfo("RETURNING_CONTRIBUTOR",
+                    "Returning Contributor (" + (priorPrs + 1) + " contributions to this repository)", "CONTRIBUTOR");
+        }
+        PullRequestContext prContext = PullRequestContext.builder()
+                .owner(owner)
+                .repo(repo)
+                .prNumber(prNumber)
+                .title(title != null && !title.isBlank() ? title : ("PR #" + prNumber))
+                .description("")
+                .authorLogin(author != null && !author.isBlank() ? author : "unknown")
+                .baseRef("main")
+                .headRef("feature")
+                .commitSha("direct-" + System.currentTimeMillis())
+                .installationId(0)
+                .targetUser(owner)
+                .authorAssociation(rep.association())
+                .authorReputation(rep.reputation())
+                .authorReputationDetail(rep.detail())
+                .repoContext(owner + "/" + repo)
+                .build();
+
+        List<ChangeChunk> chunks = diffParser.parse(diff != null ? diff : "");
+        prContext.setFilesChanged(chunks.stream()
+                .map(ChangeChunk::getFilePath)
+                .distinct()
+                .collect(Collectors.toList()));
+
+        return analyzeDiff(prContext, chunks)
+                .then(Mono.fromCallable(() ->
+                        prAnalysisRepository.findLatest(owner, repo, prNumber).orElse(null)));
+    }
+
+    /**
      * Process PR context: fetch diff, analyze, and publish review.
      */
-    private Mono<Void> processPullRequestContext(PullRequestContext prContext) {
+    public Mono<Void> processPullRequestContext(PullRequestContext prContext) {
         long installationId = prContext.getInstallationId();
         String commitSha = prContext.getCommitSha();
+
+        if (prContext.getAuthorLogin() != null && !prContext.getAuthorLogin().isBlank()) {
+            long priorPrs = prAnalysisRepository.countPriorPrsByAuthor(
+                    prContext.getOwner(), prContext.getRepo(), prContext.getAuthorLogin(), prContext.getPrNumber());
+            if (priorPrs > 0 && !"TRUSTED_MAINTAINER".equalsIgnoreCase(prContext.getAuthorReputation())) {
+                prContext.setAuthorReputation("RETURNING_CONTRIBUTOR");
+                prContext.setAuthorReputationDetail("Returning Contributor (" + (priorPrs + 1) + " contributions to this repository)");
+                prContext.setAuthorAssociation("CONTRIBUTOR");
+            }
+        }
 
         // T7: Skip analysis if this commit SHA was already analyzed
         if (prAnalysisRepository.existsByOwnerRepoPrSha(
@@ -119,25 +185,36 @@ public class ReviewOrchestrator {
                     })
                 : Mono.just(new ArrayList<>());
 
+        // Extract before/after code change summaries
+        if (prContext.getChangeSummaryBefore() == null || prContext.getChangeSummaryBefore().isBlank()) {
+            prContext.setChangeSummaryBefore(summaryGenerator.extractWhatWasBefore(chunks, prContext));
+        }
+        if (prContext.getChangeSummaryAfter() == null || prContext.getChangeSummaryAfter().isBlank()) {
+            prContext.setChangeSummaryAfter(summaryGenerator.extractWhatChanged(chunks, prContext));
+        }
+
         return llmResult.flatMap(llmFindings -> {
             if (llmFindings != null) {
                 findings.addAll(llmFindings);
                 log.info("LLM found {} findings", llmFindings.size());
             }
 
+            // Enrich context with functional analysis before generating summary
+            summaryGenerator.enrichContextWithFunctionalAnalysis(prContext, chunks, findings);
+
             // Generate structured summary
             String summary = summaryGenerator.generateSummary(prContext, findings);
             log.info("Generated structured summary for PR {}/{}/#{}:", prContext.getOwner(), prContext.getRepo(), prContext.getPrNumber());
             log.debug(summary);
 
-            return publishReviewWithFindings(prContext, findings);
+            return publishReviewWithFindings(prContext, findings, chunks);
         });
     }
 
     /**
      * Merge, rank, and publish review findings.
      */
-    private Mono<Void> publishReviewWithFindings(PullRequestContext prContext, List<Finding> findings) {
+    private Mono<Void> publishReviewWithFindings(PullRequestContext prContext, List<Finding> findings, List<ChangeChunk> chunks) {
         log.debug("Merging and ranking {} findings", findings.size());
 
         List<Finding> rankedFindings = findingMerger.mergeAndRank(findings);
@@ -148,6 +225,9 @@ public class ReviewOrchestrator {
         prContext.setTriageResult(triageResult);
         log.info("Triage tier: {} (security={}, action={})",
                 triageResult.tier(), triageResult.securityFlag(), triageResult.suggestedAction());
+
+        // Re-enrich context with final ranked findings and triage tier
+        summaryGenerator.enrichContextWithFunctionalAnalysis(prContext, chunks, rankedFindings);
 
         // Generate structured summary (once)
         String summary = summaryGenerator.generateSummary(prContext, rankedFindings);
@@ -168,6 +248,7 @@ public class ReviewOrchestrator {
         return reviewPublisher.publishReview(
                         prContext.getOwner(), prContext.getRepo(), prContext.getPrNumber(),
                         rankedFindings, autoApprove, inlineComments, prContext.getInstallationId(), prContext)
+                .publishOn(reactor.core.scheduler.Schedulers.boundedElastic())
                 .doOnSuccess(v -> {
                     log.info("Review published successfully for {}/{}/PR#{}",
                             prContext.getOwner(), prContext.getRepo(), prContext.getPrNumber());
@@ -206,8 +287,21 @@ public class ReviewOrchestrator {
             entity.setSecurityFlag(triageResult != null && triageResult.securityFlag());
             entity.setSummary(summary);
             entity.setFindingsJson(gson.toJson(findings));
+            entity.setTitle(prContext.getTitle());
+            entity.setAuthor(prContext.getAuthorLogin());
+            List<String> files = prContext.getFilesChanged();
+            entity.setFilesChangedCount(files != null ? files.size() : 0);
+            entity.setFilesChangedJson(files != null ? gson.toJson(files) : "[]");
             entity.setStatus("COMPLETED");
             entity.setInstallationId(String.valueOf(prContext.getInstallationId()));
+            entity.setTargetUser(prContext.getTargetUser() != null && !prContext.getTargetUser().isBlank()
+                    ? prContext.getTargetUser() : prContext.getOwner());
+            entity.setAuthorReputation(prContext.getAuthorReputation() != null
+                    ? prContext.getAuthorReputation() : "FIRST_TIME_CONTRIBUTOR");
+            entity.setAuthorReputationDetail(prContext.getAuthorReputationDetail());
+            entity.setChangeSummaryBefore(prContext.getChangeSummaryBefore());
+            entity.setChangeSummaryAfter(prContext.getChangeSummaryAfter());
+            entity.setRepoContext(prContext.getRepoContext());
             entity.setCreatedAt(java.time.Instant.now());
 
             prAnalysisRepository.save(entity);

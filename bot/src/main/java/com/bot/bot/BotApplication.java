@@ -17,6 +17,7 @@ public class BotApplication {
 
     public static void main(String[] args) {
         loadDotEnv();
+        configureDatabaseFallback();
         SpringApplication.run(BotApplication.class, args);
     }
 
@@ -62,5 +63,41 @@ public class BotApplication {
             if (f.isFile()) return f;
         }
         return null;
+    }
+
+    /**
+     * If PostgreSQL is not reachable on the configured host/port, automatically
+     * fall back to the embedded H2 file database to ensure zero-configuration execution.
+     */
+    private static void configureDatabaseFallback() {
+        String dbUrl = System.getProperty("DATABASE_URL");
+        if (dbUrl == null) {
+            dbUrl = System.getenv("DATABASE_URL");
+        }
+
+        // If no custom DATABASE_URL or using default localhost PostgreSQL or H2
+        if (dbUrl == null || dbUrl.contains("h2:") || dbUrl.contains("localhost:5432/pr_triage") || dbUrl.contains("127.0.0.1:5432/pr_triage")) {
+            boolean isH2 = dbUrl != null && dbUrl.contains("h2:");
+            boolean reachable = !isH2 && isPortReachable("localhost", 5432, 500);
+            if (!reachable) {
+                System.out.println("[DB] PostgreSQL not detected on localhost:5432. Falling back to embedded H2 database (data/pr_triage)...");
+                new File("data").mkdirs();
+                new File("bot/data").mkdirs();
+                System.setProperty("DATABASE_URL", "jdbc:h2:./data/pr_triage;AUTO_SERVER=TRUE;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1");
+                System.setProperty("DATABASE_USER", "sa");
+                System.setProperty("DATABASE_PASSWORD", "");
+                System.setProperty("spring.jpa.database-platform", "org.hibernate.dialect.H2Dialect");
+                System.setProperty("spring.jpa.properties.hibernate.dialect", "org.hibernate.dialect.H2Dialect");
+            }
+        }
+    }
+
+    private static boolean isPortReachable(String host, int port, int timeoutMs) {
+        try (java.net.Socket socket = new java.net.Socket()) {
+            socket.connect(new java.net.InetSocketAddress(host, port), timeoutMs);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

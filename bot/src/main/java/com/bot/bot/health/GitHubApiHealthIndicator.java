@@ -33,23 +33,64 @@ public class GitHubApiHealthIndicator implements HealthIndicator {
     @Override
     public Health health() {
         try {
-            String jwt = jwtGenerator.generateAppToken();
-            String url = gitHubProperties.getApiUrl() + "/app";
+            if (gitHubProperties.hasAppCredentials()) {
+                String jwt = jwtGenerator.generateAppToken();
+                String url = gitHubProperties.getApiUrl() + "/app";
 
-            String response = webClient.get()
-                    .uri(url)
-                    .header("Authorization", "Bearer " + jwt)
-                    .header("Accept", "application/vnd.github.v3+json")
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .timeout(TIMEOUT)
-                    .block();
+                String response = webClient.get()
+                        .uri(url)
+                        .header("Authorization", "Bearer " + jwt)
+                        .header("Accept", "application/vnd.github.v3+json")
+                        .retrieve()
+                        .bodyToMono(String.class)
+                        .timeout(TIMEOUT)
+                        .block();
 
-            if (response != null && response.contains("\"id\"")) {
-                return Health.up()
-                        .withDetail("apiUrl", gitHubProperties.getApiUrl())
-                        .withDetail("status", "GitHub App authenticated successfully")
-                        .build();
+                if (response != null && response.contains("\"id\"")) {
+                    return Health.up()
+                            .withDetail("apiUrl", gitHubProperties.getApiUrl())
+                            .withDetail("mode", "GitHub App")
+                            .withDetail("status", "GitHub App authenticated successfully")
+                            .build();
+                }
+            } else if (gitHubProperties.hasToken()) {
+                String url = gitHubProperties.getApiUrl() + "/user";
+
+                String response = webClient.get()
+                        .uri(url)
+                        .header("Authorization", "Bearer " + gitHubProperties.getToken().trim())
+                        .header("Accept", "application/vnd.github.v3+json")
+                        .retrieve()
+                        .bodyToMono(String.class)
+                        .timeout(TIMEOUT)
+                        .block();
+
+                if (response != null && response.contains("\"login\"")) {
+                    return Health.up()
+                            .withDetail("apiUrl", gitHubProperties.getApiUrl())
+                            .withDetail("mode", "Personal Access Token")
+                            .withDetail("status", "Token authenticated successfully")
+                            .build();
+                }
+            } else {
+                // Public / tokenless mode: verify GitHub API is reachable
+                String url = gitHubProperties.getApiUrl() + "/zen";
+
+                String response = webClient.get()
+                        .uri(url)
+                        .header("Accept", "text/plain")
+                        .retrieve()
+                        .bodyToMono(String.class)
+                        .timeout(TIMEOUT)
+                        .block();
+
+                if (response != null && !response.isBlank()) {
+                    return Health.up()
+                            .withDetail("apiUrl", gitHubProperties.getApiUrl())
+                            .withDetail("mode", "Public GitHub API (tokenless)")
+                            .withDetail("status", "GitHub API reachable")
+                            .build();
+                }
             }
 
             return Health.down()

@@ -5,7 +5,6 @@ import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
 import com.bot.bot.llm.LLMClient;
 import com.bot.bot.llm.LLMFallbackChain;
-import com.bot.bot.llm.OpenAiCompatibleClient;
 import com.google.gson.Gson;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

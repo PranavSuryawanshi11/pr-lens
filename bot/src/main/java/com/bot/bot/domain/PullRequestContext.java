@@ -24,4 +24,34 @@ public class PullRequestContext {
     private long installationId;
     private List<String> filesChanged;
     private TriageResult triageResult;
+    private String targetUser;
+    private String authorAssociation;
+    private String authorReputation;
+    private String authorReputationDetail;
+    private String repoContext;
+    private String changeSummaryBefore;
+    private String changeSummaryAfter;
+    private String executiveSummary;
+    private List<String> functionalChanges;
+    private List<String> whatToEditOrAdd;
+    private String decisionRecommendation;
+    private String decisionRationale;
+
+    private static final ThreadLocal<PullRequestContext> CURRENT = new ThreadLocal<>();
+
+    public static void setCurrent(PullRequestContext context) {
+        if (context == null) {
+            CURRENT.remove();
+        } else {
+            CURRENT.set(context);
+        }
+    }
+
+    public static PullRequestContext getCurrent() {
+        return CURRENT.get();
+    }
+
+    public static void clear() {
+        CURRENT.remove();
+    }
 }
