@@ -65,7 +65,7 @@ public class ReviewOrchestrator {
      * Works on any GitHub account via GitHub API without pre-configuring a GitHub App.
      */
     public Mono<PrAnalysis> triagePullRequest(String owner, String repo, int prNumber) {
-        log.info("Starting on-demand PR triage for {}/{}/PR#{}", owner, repo, prNumber);
+        log.info("Starting on-demand PR-Lens review for {}/{}/PR#{}", owner, repo, prNumber);
         return gitHubApiClient.fetchPullRequestDetails(owner, repo, prNumber)
                 .flatMap(prContext -> processPullRequestContext(prContext)
                         .then(Mono.fromCallable(() ->

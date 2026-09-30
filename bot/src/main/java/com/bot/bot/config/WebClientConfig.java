@@ -93,6 +93,7 @@ public class WebClientConfig {
                 .build();
 
         return HttpClient.create(connectionProvider)
+                .resolver(io.netty.resolver.DefaultAddressResolverGroup.INSTANCE)
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, CONNECT_TIMEOUT_MS)
                 .doOnConnected(conn ->
                         conn.addHandlerLast(new ReadTimeoutHandler(READ_TIMEOUT_SECONDS, TimeUnit.SECONDS))

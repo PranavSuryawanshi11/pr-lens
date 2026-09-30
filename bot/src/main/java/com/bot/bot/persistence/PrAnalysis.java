@@ -67,6 +67,12 @@ public class PrAnalysis {
     @Column(name = "action_taken", nullable = false)
     private Boolean actionTaken = false;
 
+    @Column(name = "closed")
+    private Boolean closed = false;
+
+    @Column(name = "action_type")
+    private String actionType;
+
     @Column(name = "target_user")
     private String targetUser;
 

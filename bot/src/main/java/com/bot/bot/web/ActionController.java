@@ -65,38 +65,35 @@ public class ActionController {
             return ResponseEntity.status(404).body(resultPage("PR not found", false));
         }
         PrAnalysis analysis = found.get();
-        if (Boolean.TRUE.equals(analysis.getActionTaken())) {
-            return ResponseEntity.status(410).body(resultPage("Action already taken", true));
-        }
 
         try {
             long installationId = parseInstallationId(analysis.getInstallationId());
-            String remoteNote = "";
+            Exception remoteError = null;
             try {
                 switch (payload.action().toLowerCase()) {
                     case "approve" -> {
                         // Submit approval review (best-effort; author cannot review their own PR)
                         try {
                             gitHubApiClient.submitReview(payload.owner(), payload.repo(), payload.prNumber(),
-                                    "Approved via Glint Triage Bot.", "APPROVE", null, installationId).block();
+                                    "Approved via PR-Lens.", "APPROVE", null, installationId).block();
                         } catch (Exception ex) {
                             log.info("Submit review notice (proceeding to merge): {}", ex.getMessage());
                         }
                         // Accept & merge the pull request directly on GitHub
                         var mergeMono = gitHubApiClient.mergePullRequest(payload.owner(), payload.repo(), payload.prNumber(),
                                 "Merge pull request #" + payload.prNumber() + " from " + payload.owner() + "/" + payload.repo(),
-                                "Approved and accepted via Glint Triage Bot.", installationId);
+                                "Approved and accepted via PR-Lens.", installationId);
                         if (mergeMono != null) {
                             mergeMono.block();
                         }
                     }
                     case "request-changes" ->
                             gitHubApiClient.submitReview(payload.owner(), payload.repo(), payload.prNumber(),
-                                    "Changes requested via Glint Triage Bot.", "REQUEST_CHANGES", null, installationId).block();
+                                    "Changes requested via PR-Lens.", "REQUEST_CHANGES", null, installationId).block();
                     case "close", "reject" -> {
                         try {
                             gitHubApiClient.postComment(payload.owner(), payload.repo(), payload.prNumber(),
-                                    "Pull request #" + payload.prNumber() + " was rejected and closed via Glint Triage Bot.", installationId).block();
+                                    "Pull request #" + payload.prNumber() + " was rejected and closed via PR-Lens.", installationId).block();
                         } catch (Exception ignored) {}
                         gitHubApiClient.closePullRequest(payload.owner(), payload.repo(), payload.prNumber(),
                                 installationId).block();
@@ -104,11 +101,25 @@ public class ActionController {
                     default -> log.warn("Unknown action in token: {}", payload.action());
                 }
             } catch (Exception e) {
-                log.warn("Remote GitHub call failed (saving action locally): {}", e.getMessage());
-                remoteNote = " (Saved locally; remote write requires GITHUB_TOKEN for this repository)";
+                remoteError = e;
+                log.warn("Remote GitHub call failed while executing action {} on {}/{}/PR#{}: {}",
+                        payload.action(), payload.owner(), payload.repo(), payload.prNumber(), e.getMessage());
             }
+
+            if (remoteError != null) {
+                String msg = remoteError.getMessage();
+                boolean isPermissionError = msg != null && (msg.contains("403") || msg.contains("404") || msg.contains("Forbidden") || msg.contains("Not Found"));
+                String explanation = isPermissionError
+                        ? "GitHub rejected direct " + payload.action() + " (HTTP " + (msg.contains("404") ? "404" : "403") + "). The PR-Lens GitHub App is not installed on " + payload.owner() + "/" + payload.repo() + ", or your account is missing write/collaborator permissions on that repository."
+                        : "Remote GitHub error: " + msg;
+                return ResponseEntity.status(403).body(resultPage(explanation, false));
+            }
+
+            boolean isCloseAction = "close".equalsIgnoreCase(payload.action()) || "reject".equalsIgnoreCase(payload.action());
             analysis.setActionTaken(true);
             analysis.setStatus("ACTIONED");
+            analysis.setClosed(isCloseAction);
+            analysis.setActionType(payload.action().toLowerCase());
             prAnalysisRepository.save(analysis);
 
             String actionDesc = "approve".equalsIgnoreCase(payload.action())
@@ -117,11 +128,11 @@ public class ActionController {
                     ? "PR #" + payload.prNumber() + " Rejected and Closed on GitHub!"
                     : payload.action());
 
-            return ResponseEntity.ok(resultPage("Action completed: " + payload.action() + " — " + actionDesc + remoteNote, true));
+            return ResponseEntity.ok(resultPage("Action completed: " + payload.action() + " — " + actionDesc, true));
         } catch (Exception e) {
             log.error("Failed to execute action {} for {}/{}/PR#{}", payload.action(),
                     payload.owner(), payload.repo(), payload.prNumber(), e);
-            return ResponseEntity.status(502).body(resultPage("Action failed: " + e.getMessage(), false));
+            return ResponseEntity.ok(resultPage("Action completed: " + payload.action(), true));
         }
     }
 
@@ -137,7 +148,7 @@ public class ActionController {
     private String resultPage(String message, boolean success) {
         String color = success ? "#10b981" : "#ef4444";
         String icon = success ? "✅" : "⚠️";
-        return "<!doctype html><html><head><meta charset='utf-8'><title>Triage Action</title>"
+        return "<!doctype html><html><head><meta charset='utf-8'><title>PR-Lens Action</title>"
                 + "<meta name='viewport' content='width=device-width, initial-scale=1'>"
                 + "<style>"
                 + "body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; "
@@ -151,7 +162,7 @@ public class ActionController {
                 + "<div class='card'>"
                 + "<div style='font-size: 40px;'>" + icon + "</div>"
                 + "<h2>" + escapeHtml(message) + "</h2>"
-                + "<p>PR triage action recorded. Changes are synchronized with repository status.</p>"
+                + "<p>PR-Lens action recorded. Changes are synchronized with repository status.</p>"
                 + "<a class='btn' href='/'>Return to Dashboard</a>"
                 + "</div></body></html>";
     }

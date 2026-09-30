@@ -77,7 +77,11 @@ public class GitHubJwtGenerator {
         if (privateKey == null) {
             synchronized (this) {
                 if (privateKey == null) {
-                    privateKey = loadPrivateKey(gitHubProperties.getPrivateKeyPath());
+                    java.nio.file.Path resolved = gitHubProperties.resolvePrivateKeyPath();
+                    if (resolved == null) {
+                        throw new IllegalStateException("Private key file not found: " + gitHubProperties.getPrivateKeyPath());
+                    }
+                    privateKey = loadPrivateKey(resolved.toString());
                 }
             }
         }
