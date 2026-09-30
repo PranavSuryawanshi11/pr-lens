@@ -127,4 +127,21 @@ class DashboardControllerTest {
         assertFalse(html.contains("<script>alert(1)</script>"), "raw script must not appear");
         assertTrue(html.contains("&lt;script&gt;"), "summary must be HTML-escaped");
     }
+
+    @Test
+    void emailPreviewHidesRecipientEmail() {
+        when(repo.findAll(ArgumentMatchers.any(PageRequest.class)))
+                .thenReturn(new PageImpl<>(List.of()));
+
+        BindingAwareModelMap model = new BindingAwareModelMap();
+        String view = controller.emailPreview(model, "someuser");
+
+        org.junit.jupiter.api.Assertions.assertEquals("email_preview", view);
+        org.junit.jupiter.api.Assertions.assertEquals("—", model.get("recipient"));
+
+        String html = render(view, model);
+        assertFalse(html.contains("yashbagal"), "must not display personal email");
+        assertFalse(html.contains("developer@company.com"), "must not display template placeholder email");
+        assertTrue(html.contains("<span class=\"meta-val mono\">—</span>"), "recipient field must render dash placeholder");
+    }
 }

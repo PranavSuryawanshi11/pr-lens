@@ -114,4 +114,23 @@ class ThresholdAlertServiceTest {
 
         verify(mail).sendEmail(anyList(), any(), any());
     }
+
+    @Test
+    void resolvesRecipientFromGitHubWhenNoEmailConfigured() {
+        PrAnalysisRepository repo = mock(PrAnalysisRepository.class);
+        MailService mail = mock(MailService.class);
+        EmailTemplate tpl = mock(EmailTemplate.class);
+        when(tpl.renderAlert(any())).thenReturn("<alert/>");
+        com.bot.bot.github.GitHubApiClient gitHubApiClient = mock(com.bot.bot.github.GitHubApiClient.class);
+        when(gitHubApiClient.resolveUserEmail("acme", "api", 7)).thenReturn(reactor.core.publisher.Mono.just("github.user@example.com"));
+
+        ConfigService c = mock(ConfigService.class);
+        when(c.resolve(anyString())).thenReturn(new ConfigService.ResolvedConfig(
+                "", "0 0 18 * * *", "RED", true, true, true, List.of()));
+
+        ThresholdAlertService service = new ThresholdAlertService(repo, mail, c, tpl, gitHubApiClient, null);
+        service.sendTriageReport(urgent("RED", false, false), null);
+
+        verify(mail).sendEmail(org.mockito.ArgumentMatchers.eq(List.of("github.user@example.com")), any(), any());
+    }
 }

@@ -16,7 +16,7 @@ import org.testcontainers.utility.DockerImageName;
         "app.action-secret=test-action-secret",
         "llm.enabled=false"
 })
-@Testcontainers
+@Testcontainers(disabledWithoutDocker = true)
 class BotApplicationTests {
 
     @Container

@@ -40,9 +40,16 @@ class GitHubApiClientTest {
     }
 
     @Test
-    void getInstallationTokenRejectsInvalidInstallationId() {
-        StepVerifier.create(client().getInstallationToken(0))
+    void mergePullRequestRejectsInvalidInstallationId() {
+        StepVerifier.create(client().mergePullRequest("acme", "api", 7, "Merge title", "Merge msg", 0))
                 .expectError()
                 .verify(Duration.ofSeconds(10));
+    }
+
+    @Test
+    void resolveUserEmailReturnsEmptyOnBlankUser() {
+        StepVerifier.create(client().resolveUserEmail("", null, null, null))
+                .expectNext("")
+                .verifyComplete();
     }
 }

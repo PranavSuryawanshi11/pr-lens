@@ -97,6 +97,39 @@ class ActionControllerTest {
     }
 
     @Test
+    void validApproveCallsSubmitReviewAndMerge() {
+        when(tokenService.verify(anyString())).thenReturn(payload("acme", "api", 7, "approve"));
+        PrAnalysis a = seeded();
+        when(prAnalysisRepository.findLatest("acme", "api", 7)).thenReturn(Optional.of(a));
+        when(gitHubApiClient.submitReview(anyString(), anyString(), anyInt(), anyString(), anyString(), any(), anyLong()))
+                .thenReturn(Mono.empty());
+        when(gitHubApiClient.mergePullRequest(anyString(), anyString(), anyInt(), anyString(), anyString(), anyLong()))
+                .thenReturn(Mono.empty());
+
+        ResponseEntity<String> response = controller.handleAction("t", "approve");
+
+        assertEquals(200, response.getStatusCode().value());
+        verify(gitHubApiClient).submitReview(eq("acme"), eq("api"), eq(7), anyString(), eq("APPROVE"), any(), anyLong());
+        verify(gitHubApiClient).mergePullRequest(eq("acme"), eq("api"), eq(7), anyString(), anyString(), anyLong());
+        assertTrue(response.getBody().contains("Accepted and Merged"));
+    }
+
+    @Test
+    void validRejectCallsClose() {
+        when(tokenService.verify(anyString())).thenReturn(payload("acme", "api", 7, "reject"));
+        PrAnalysis a = seeded();
+        when(prAnalysisRepository.findLatest("acme", "api", 7)).thenReturn(Optional.of(a));
+        when(gitHubApiClient.closePullRequest(anyString(), anyString(), anyInt(), anyLong()))
+                .thenReturn(Mono.empty());
+
+        ResponseEntity<String> response = controller.handleAction("t", "reject");
+
+        assertEquals(200, response.getStatusCode().value());
+        verify(gitHubApiClient).closePullRequest(eq("acme"), eq("api"), eq(7), anyLong());
+        assertTrue(response.getBody().contains("Rejected and Closed"));
+    }
+
+    @Test
     void actionMismatchReturns400() {
         when(tokenService.verify(anyString())).thenReturn(payload("acme", "api", 7, "approve"));
 

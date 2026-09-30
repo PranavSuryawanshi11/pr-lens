@@ -40,7 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         "app.action-secret=test-action-secret",
         "llm.enabled=false"
 })
-@Testcontainers
+@Testcontainers(disabledWithoutDocker = true)
 class AppIntegrationTest {
 
     @Container

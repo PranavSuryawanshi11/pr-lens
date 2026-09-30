@@ -69,4 +69,65 @@ class EmailTemplateTest {
         assertTrue(body.contains("Approve"));
         assertTrue(body.contains("Reject"));
     }
+
+    @Test
+    void testDifferenceTableRendersWhenApplicableAndOmitsCodeAndLineNumbers() {
+        EmailTemplate tpl = new EmailTemplate(tokenService(true));
+        PrAnalysis a = analysis("acme", "api", 10, "YELLOW", false);
+        a.setTitle("Refactor user authentication service");
+        a.setChangeSummaryBefore("Previously had 15 line(s) across 1 file(s) that were modified or removed (prior code included: `int oldAuth = 1;`).");
+        a.setChangeSummaryAfter("Updated class 'AuthService' in 'AuthService.java' - Added 30 line(s) of new implementation across 1 file(s) (introduced: `public boolean checkToken()`).");
+
+        String body = tpl.renderAlert(a);
+
+        // Verify Difference Table rendered
+        assertTrue(body.contains("Feature Differences (Before vs After PR)"));
+        assertTrue(body.contains("Before Pull Request"));
+        assertTrue(body.contains("After Pull Request"));
+        assertTrue(body.contains("What Changed in PR"));
+
+        // Verify raw code and line counts are stripped
+        assertFalse(body.contains("prior code included:"));
+        assertFalse(body.contains("`int oldAuth = 1;`"));
+        assertFalse(body.contains("line(s)"));
+        assertFalse(body.contains("`public boolean checkToken()`"));
+    }
+
+    @Test
+    void testPointWiseChangesRendersWhenDifferenceNotApplicable() {
+        EmailTemplate tpl = new EmailTemplate(tokenService(true));
+        PrAnalysis a = analysis("acme", "api", 11, "GREEN", false);
+        a.setTitle("Add new Computer Networks module");
+        a.setChangeSummaryBefore("Clean addition: new functionality introduced without replacing existing code.");
+        a.setChangeSummaryAfter("Added one more subject 'Computer Networks' in subjects/ and in Computer Networks added '7 layer OSI model' - Added 50 line(s) of new implementation across 1 file(s) (introduced: `### Physical Layer`).");
+
+        String body = tpl.renderAlert(a);
+
+        // Verify Point-Wise list rendered, not difference table
+        assertTrue(body.contains("Key Changes (Point-Wise Summary)"));
+        assertTrue(body.contains("Feature Added:"));
+        assertTrue(body.contains("Computer Networks"));
+        assertTrue(body.contains("7 layer OSI model"));
+        assertFalse(body.contains("Feature Differences (Before vs After PR)"));
+
+        // Verify raw code and line counts are stripped
+        assertFalse(body.contains("line(s)"));
+        assertFalse(body.contains("introduced:"));
+        assertFalse(body.contains("`### Physical Layer`"));
+    }
+
+    @Test
+    void testFindingsOmitLineNumbers() {
+        EmailTemplate tpl = new EmailTemplate(tokenService(true));
+        PrAnalysis a = analysis("acme", "api", 12, "RED", false);
+        a.setFindingsJson("[{\"filePath\":\"src/main/Auth.java\",\"lineNumber\":88,\"severity\":\"HIGH\",\"message\":\"Unchecked null pointer possibility\",\"suggestion\":\"Add null check\"}]");
+
+        String body = tpl.renderAlert(a);
+
+        assertTrue(body.contains("src/main/Auth.java"));
+        assertTrue(body.contains("Unchecked null pointer possibility"));
+        assertTrue(body.contains("Add null check"));
+        // Ensure exact line number ':88' is NOT displayed
+        assertFalse(body.contains("Auth.java:88"));
+    }
 }

@@ -111,4 +111,91 @@ class SummaryGeneratorTest {
         assertTrue(summary.contains("Possible AI assistance, but not definitive"));
         assertTrue(summary.contains("Needs human review"));
     }
+
+    @Test
+    void testSubjectAdditionNarrative_PlacementPreparation_ComputerNetworks() {
+        com.bot.bot.domain.ChangeChunk chunk = com.bot.bot.domain.ChangeChunk.builder()
+                .filePath("subjects/computer-networks.md")
+                .changeType("ADDED")
+                .addedLines(List.of(
+                        "# Computer Networks",
+                        "Comprehensive overview of Computer Networking concepts for campus placement preparation.",
+                        "## 7 layer OSI model",
+                        "The Open Systems Interconnection model defines 7 distinct networking abstraction layers:",
+                        "### Physical Layer",
+                        "### Data Link Layer"
+                ))
+                .build();
+
+        PullRequestContext prContext = PullRequestContext.builder()
+                .owner("PranavSuryawanshi11")
+                .repo("Placement-Preparation-Hub")
+                .prNumber(10)
+                .title("Add Computer Networks subject with OSI model")
+                .build();
+
+        String narrative = summaryGenerator.extractSemanticFeatureNarrative(List.of(chunk), prContext);
+        assertEquals("Added one more subject 'Computer Networks' in subjects/ and in Computer Networks added '7 layer OSI model'", narrative);
+
+        String whatChanged = summaryGenerator.extractWhatChanged(List.of(chunk), prContext);
+        assertTrue(whatChanged.startsWith("Added one more subject 'Computer Networks' in subjects/ and in Computer Networks added '7 layer OSI model'"));
+        assertTrue(whatChanged.contains("6 line(s) of new implementation across 1 file(s)"));
+
+        prContext.setChangeSummaryAfter(whatChanged);
+        String fullSummary = summaryGenerator.generateSummary(prContext, Collections.emptyList());
+        assertTrue(fullSummary.contains("Feature Summary: Added one more subject 'Computer Networks' in subjects/ and in Computer Networks added '7 layer OSI model'"));
+        assertTrue(fullSummary.contains("What Changed: " + whatChanged));
+    }
+
+    @Test
+    void testSubjectUpdateNarrative_ExistingSubjectWithNewTopic() {
+        com.bot.bot.domain.ChangeChunk chunk = com.bot.bot.domain.ChangeChunk.builder()
+                .filePath("subjects/computer-networks.md")
+                .changeType("MODIFIED")
+                .addedLines(List.of(
+                        "## 7 layer OSI model",
+                        "Added detailed explanation of 7 layer OSI model."
+                ))
+                .build();
+
+        PullRequestContext prContext = PullRequestContext.builder()
+                .owner("PranavSuryawanshi11")
+                .repo("Placement-Preparation-Hub")
+                .prNumber(11)
+                .title("Add 7 layer OSI model notes")
+                .build();
+
+        String narrative = summaryGenerator.extractSemanticFeatureNarrative(List.of(chunk), prContext);
+        assertEquals("In subject 'Computer Networks' (subjects/), added '7 layer OSI model'", narrative);
+    }
+
+    @Test
+    void testCodeFeatureAdditionNarrative_AuthService() {
+        com.bot.bot.domain.ChangeChunk chunk = com.bot.bot.domain.ChangeChunk.builder()
+                .filePath("src/main/java/com/service/AuthService.java")
+                .changeType("ADDED")
+                .addedLines(List.of(
+                        "package com.service;",
+                        "public class AuthService {",
+                        "    public boolean verifyUser(String token, User user) {",
+                        "        return token != null && token.equals(\"VALID\");",
+                        "    }",
+                        "}"
+                ))
+                .build();
+
+        PullRequestContext prContext = PullRequestContext.builder()
+                .owner("owner")
+                .repo("repo")
+                .prNumber(1)
+                .title("Add AuthService")
+                .build();
+
+        String narrative = summaryGenerator.extractSemanticFeatureNarrative(List.of(chunk), prContext);
+        assertEquals("Created new file 'AuthService.java' implementing class 'AuthService' with method(s) 'verifyUser()'", narrative);
+
+        String whatChanged = summaryGenerator.extractWhatChanged(List.of(chunk), prContext);
+        assertTrue(whatChanged.contains("Created new file 'AuthService.java' implementing class 'AuthService' with method(s) 'verifyUser()'"));
+        assertTrue(whatChanged.contains("AuthService.java"));
+    }
 }
