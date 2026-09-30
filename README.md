@@ -1,4 +1,4 @@
-# PR Triage Bot (`glint`)
+# PR-Lens Bot (`glint`)
 
 A webhook-driven GitHub App that automatically triages every incoming pull request:
 it fetches the diff, runs cheap heuristics **and** an LLM review in parallel,
@@ -40,7 +40,7 @@ maintainer can triage a flood of PRs in minutes instead of hours.
 ## Repository layout
 
 ```
-pr-triage/
+PR-Lens/
 ├── bot/                      # Spring Boot application (the bot)
 │   ├── src/main/java/com/bot/bot/
 │   │   ├── BotApplication.java        # entry point, .env loader

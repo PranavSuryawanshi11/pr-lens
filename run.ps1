@@ -103,9 +103,7 @@ function Ensure-Env {
                 $parts = $line.Split("=", 2)
                 $k = $parts[0].Trim()
                 $v = $parts[1].Trim()
-                if (-not (Get-Item "env:$k" -ErrorAction SilentlyContinue) -or -not (Get-ChildItem "env:$k").Value) {
-                    [Environment]::SetEnvironmentVariable($k, $v, "Process")
-                }
+                [Environment]::SetEnvironmentVariable($k, $v, "Process")
             }
         }
     }
@@ -128,11 +126,14 @@ function Ensure-Env {
         $env:MAIL_ENABLED = "true"
         if (-not $env:MAIL_USERNAME) {
             $env:MAIL_USERNAME = "workwithpranav07@gmail.com"
-            $env:MAIL_PASSWORD = "tgkfzzuczvhukuve"
+            $env:MAIL_PASSWORD = "lwqjkvrrsxppxucz"
             $env:MAIL_FROM = "workwithpranav07@gmail.com"
         }
+        if (-not $env:MAIL_MAINTAINERS) {
+            $env:MAIL_MAINTAINERS = "pranavsuryawanshi955@gmail.com"
+        }
         if (-not $env:MAIL_SENDER_NAME) {
-            $env:MAIL_SENDER_NAME = "PR-Triage"
+            $env:MAIL_SENDER_NAME = "PR-Lens"
         }
     }
 }
@@ -172,7 +173,7 @@ switch ($Command.ToLower()) {
         Ensure-Env
         Ensure-Database
 
-        Write-Host "[glint] Starting glint PR Triage Bot on :$targetPort..." -ForegroundColor Green
+        Write-Host "[glint] Starting glint PR-Lens Bot on :$targetPort..." -ForegroundColor Green
         Write-Host "[glint] Dashboard: http://localhost:$targetPort/" -ForegroundColor Cyan
         Write-Host "[glint] On-demand Triage API: http://localhost:$targetPort/api/triage" -ForegroundColor Cyan
         Write-Host "[glint] Press Ctrl-C to stop." -ForegroundColor Gray

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# run.sh — One-command runner and triage CLI for glint PR-Triage Bot.
+# run.sh — One-command runner and triage CLI for glint PR-Lens Bot.
 #
 # Usage:
 #   ./run.sh                     # Start the entire bot (auto-configures DB, Java, .env)
@@ -195,7 +195,7 @@ cmd_run() {
     ensure_env
     ensure_database
 
-    info "Starting glint PR Triage Bot on :${PORT:-8080}..."
+    info "Starting glint PR-Lens Bot on :${PORT:-8080}..."
     info "Dashboard: http://localhost:${PORT:-8080}/"
     info "On-demand Triage API: http://localhost:${PORT:-8080}/api/triage"
     info "Press Ctrl-C to stop."
@@ -355,7 +355,7 @@ cmd_db_down() {
 
 cmd_help() {
     cat << 'EOF'
-glint PR-Triage Bot — One-Command Runner
+glint PR-Lens Bot — One-Command Runner
 
 Usage:
   ./run.sh [command] [options]
