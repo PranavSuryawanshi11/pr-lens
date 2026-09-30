@@ -120,7 +120,7 @@ class ConfigPropertiesTest {
         MailProperties props = new MailProperties();
         assertFalse(props.isEnabled());
         assertEquals(25, props.getPort());
-        assertEquals("PR-Triage", props.getSenderName());
+        assertEquals("PR-Lens", props.getSenderName());
         assertEquals("0 0 18 * * *", props.getDigestCron());
         assertNotNull(props.getMaintainerEmails());
 

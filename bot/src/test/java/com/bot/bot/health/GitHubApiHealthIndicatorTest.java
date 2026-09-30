@@ -48,7 +48,7 @@ class GitHubApiHealthIndicatorTest {
                     assertEquals("Bearer mock-jwt-token", request.headers().getFirst("Authorization"));
                     return Mono.just(ClientResponse.create(HttpStatus.OK)
                             .header("Content-Type", "application/json")
-                            .body("{\"id\": 12345, \"name\": \"PR Triage Bot\"}")
+                            .body("{\"id\": 12345, \"name\": \"PR-Lens Bot\"}")
                             .build());
                 })
                 .build();
