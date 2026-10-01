@@ -46,6 +46,9 @@ server:
 
   servlet:
     context-path: /
+    session:
+      tracking-modes:
+        - cookie
 
 # ── WebFlux (for WebClient) ──────────────────────────────────────────
 spring.webflux:
@@ -115,6 +118,7 @@ llm:
 app:
   action-secret: ${APP_ACTION_SECRET:glint-default-secret-32-chars-long-action-tokens}
   base-url: ${APP_BASE_URL:http://localhost:8080}
+  action-token-expiry-days: ${APP_ACTION_TOKEN_EXPIRY_DAYS:30}
   heuristics-enabled: ${HEURISTICS_ENABLED:true}
   llm-enabled: ${LLM_ENABLED:true}
   auto-approve: ${AUTO_APPROVE:false}

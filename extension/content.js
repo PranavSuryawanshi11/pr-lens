@@ -28,7 +28,9 @@ async function initPrWidget(owner, repo, prNumber, prUrl) {
 
   try {
     // Check if PR is already triaged
-    const res = await fetch(`${BACKEND_URL}/api/history?search=${owner}/${repo}%23${prNumber}`);
+    const res = await fetch(`${BACKEND_URL}/api/history?user=${encodeURIComponent(owner)}&search=${encodeURIComponent(owner + "/" + repo + "#" + prNumber)}`, {
+      credentials: "include"
+    });
     if (res.ok) {
       const items = await res.json();
       const existing = items.find(i => i.owner.toLowerCase() === owner.toLowerCase() &&

@@ -35,6 +35,7 @@ class ConfigServiceTest {
         when(mailProperties.getDigestCron()).thenReturn("0 0 18 * * *");
         when(mailProperties.isEnabled()).thenReturn(false);
         when(mailProperties.getMaintainerEmails()).thenReturn(List.of("admin@example.com"));
+        when(mailProperties.getThresholdTier()).thenReturn("RED");
         when(appProperties.getActionSecret()).thenReturn("secret");
         when(maintainerConfigRepository.findById("42")).thenReturn(Optional.empty());
 
@@ -54,6 +55,7 @@ class ConfigServiceTest {
         when(mailProperties.getDigestCron()).thenReturn("0 0 18 * * *");
         when(mailProperties.isEnabled()).thenReturn(true);
         when(mailProperties.getMaintainerEmails()).thenReturn(List.of("admin@example.com"));
+        when(mailProperties.getThresholdTier()).thenReturn("RED");
         when(appProperties.getActionSecret()).thenReturn(null);
 
         MaintainerConfig row = new MaintainerConfig();

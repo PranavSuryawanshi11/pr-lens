@@ -72,7 +72,7 @@ auto-merges; `close` only sets `state=closed`.
 
 | Param | Required | Meaning |
 |---|---|---|
-| `token` | yes | HMAC-signed, single-use token (15-min TTL) from the dashboard/email link. |
+| `token` | yes | HMAC-signed, single-use token (30-day TTL, configurable via `app.action-token-expiry-days`) from the dashboard/email link. |
 | `do` | yes | One of `approve`, `request-changes`, `close`. |
 
 **Behavior:**

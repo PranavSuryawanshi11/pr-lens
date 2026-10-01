@@ -66,6 +66,10 @@ public class ActionController {
         }
         PrAnalysis analysis = found.get();
 
+        if (Boolean.TRUE.equals(analysis.getActionTaken())) {
+            return ResponseEntity.status(410).body(resultPage("Action already taken", false));
+        }
+
         try {
             long installationId = parseInstallationId(analysis.getInstallationId());
             Exception remoteError = null;

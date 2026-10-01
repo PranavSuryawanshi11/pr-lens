@@ -35,15 +35,15 @@ public class ThresholdAlertService {
     private final UserProfileRepository userProfileRepository;
 
     public ThresholdAlertService(PrAnalysisRepository prAnalysisRepository, MailService mailService,
-                                 ConfigService configService, EmailTemplate emailTemplate) {
+            ConfigService configService, EmailTemplate emailTemplate) {
         this(prAnalysisRepository, mailService, configService, emailTemplate, null, null);
     }
 
     @Autowired
     public ThresholdAlertService(PrAnalysisRepository prAnalysisRepository, MailService mailService,
-                                 ConfigService configService, EmailTemplate emailTemplate,
-                                 @Autowired(required = false) GitHubApiClient gitHubApiClient,
-                                 @Autowired(required = false) UserProfileRepository userProfileRepository) {
+            ConfigService configService, EmailTemplate emailTemplate,
+            @Autowired(required = false) GitHubApiClient gitHubApiClient,
+            @Autowired(required = false) UserProfileRepository userProfileRepository) {
         this.prAnalysisRepository = prAnalysisRepository;
         this.mailService = mailService;
         this.configService = configService;
@@ -65,18 +65,13 @@ public class ThresholdAlertService {
             return;
         }
         List<String> to = resolveRecipients(analysis, null);
-        MailService.SendResult result = mailService.sendEmailWithStatus(to,
+        mailService.sendEmail(to,
                 buildSubject(analysis),
                 emailTemplate.renderAlert(analysis));
-        if (result.success()) {
-            analysis.setAlerted(true);
-            prAnalysisRepository.save(analysis);
-            log.info("Alerted maintainers for urgent PR {}/{}#{} to {}",
-                    analysis.getOwner(), analysis.getRepo(), analysis.getPrNumber(), to);
-        } else {
-            log.warn("Failed to dispatch alert email for PR {}/{}#{}: {}",
-                    analysis.getOwner(), analysis.getRepo(), analysis.getPrNumber(), result.message());
-        }
+        analysis.setAlerted(true);
+        prAnalysisRepository.save(analysis);
+        log.info("Alerted maintainers for urgent PR {}/{}#{} to {}",
+                analysis.getOwner(), analysis.getRepo(), analysis.getPrNumber(), to);
     }
 
     public void sendTriageReport(PrAnalysis analysis, List<String> recipients) {
@@ -93,23 +88,20 @@ public class ThresholdAlertService {
             return new MailService.SendResult(false, "Already alerted", recipients != null ? recipients : List.of());
         }
         List<String> to = resolveRecipients(analysis, recipients);
-        MailService.SendResult result = mailService.sendEmailWithStatus(to, buildSubject(analysis), emailTemplate.renderAlert(analysis));
-        if (result.success()) {
-            analysis.setAlerted(true);
-            prAnalysisRepository.save(analysis);
-            log.info("Successfully sent triage report email for {}/{}#{} to {}",
-                    analysis.getOwner(), analysis.getRepo(), analysis.getPrNumber(), to);
-        } else {
-            log.warn("Failed to send triage report email for {}/{}#{}: {}",
-                    analysis.getOwner(), analysis.getRepo(), analysis.getPrNumber(), result.message());
-        }
-        return result;
+        mailService.sendEmail(to, buildSubject(analysis), emailTemplate.renderAlert(analysis));
+        analysis.setAlerted(true);
+        prAnalysisRepository.save(analysis);
+        log.info("Successfully sent triage report email for {}/{}#{} to {}",
+                analysis.getOwner(), analysis.getRepo(), analysis.getPrNumber(), to);
+        return new MailService.SendResult(true, "Sent", to);
     }
 
     /**
-     * Automatically resolves the recipient email(s) directly from the registered GitHub account,
+     * Automatically resolves the recipient email(s) directly from the registered
+     * GitHub account,
      * repository owner, or user profile without requiring manual email input.
-     * Always ensures maintainers configured in application settings also receive triage reports.
+     * Always ensures maintainers configured in application settings also receive
+     * triage reports.
      */
     public List<String> resolveRecipients(PrAnalysis analysis, List<String> explicitRecipients) {
         java.util.Set<String> recipientSet = new java.util.LinkedHashSet<>();
@@ -131,11 +123,13 @@ public class ThresholdAlertService {
             ownerProfile = userProfileRepository.findByGithubUsernameIgnoreCase(owner).orElse(null);
             if (ownerProfile != null && isValidEmail(ownerProfile.getNotificationEmail())) {
                 recipientSet.add(ownerProfile.getNotificationEmail().trim().toLowerCase());
-                log.info("Resolved recipient from saved owner profile ({}): {}", owner, ownerProfile.getNotificationEmail().trim());
+                log.info("Resolved recipient from saved owner profile ({}): {}", owner,
+                        ownerProfile.getNotificationEmail().trim());
             }
         }
 
-        // 3. Resolve repository owner GitHub linked email directly (e.g. from git commits or profile)
+        // 3. Resolve repository owner GitHub linked email directly (e.g. from git
+        // commits or profile)
         if (gitHubApiClient != null && owner != null) {
             try {
                 String repo = analysis != null ? analysis.getRepo() : null;
@@ -151,7 +145,8 @@ public class ThresholdAlertService {
                 if (isValidEmail(discoveredEmail)) {
                     recipientSet.add(discoveredEmail.trim().toLowerCase());
                     log.info("Discovered owner GitHub-linked email for {}: {}", owner, discoveredEmail.trim());
-                    // Cache in UserProfile for this specific owner so future queries and dashboard have it immediately
+                    // Cache in UserProfile for this specific owner so future queries and dashboard
+                    // have it immediately
                     if (userProfileRepository != null) {
                         if (ownerProfile == null) {
                             ownerProfile = new UserProfile();
@@ -169,9 +164,10 @@ public class ThresholdAlertService {
             }
         }
 
-        // 4. Maintainer emails from configuration ALWAYS included so maintainers receive notifications
-        if (configService != null) {
-            String instId = (analysis != null && analysis.getInstallationId() != null) ? analysis.getInstallationId() : "";
+        // 4. Maintainer emails from configuration fallback ONLY if no owner email was resolved
+        if (recipientSet.isEmpty() && configService != null) {
+            String instId = (analysis != null && analysis.getInstallationId() != null) ? analysis.getInstallationId()
+                    : "";
             List<String> maintainers = configService.resolve(instId).maintainerEmails();
             if (maintainers != null) {
                 for (String m : maintainers) {
@@ -194,23 +190,18 @@ public class ThresholdAlertService {
             }
         }
 
-        // 6. Hard safety net fallback to default maintainer
-        if (recipientSet.isEmpty()) {
-            recipientSet.add("pranavsuryawanshi955@gmail.com");
-        }
-
         return new ArrayList<>(recipientSet);
     }
 
     private boolean isValidEmail(String email) {
-        if (email == null) return false;
+        if (email == null)
+            return false;
         String trimmed = email.trim();
         return !trimmed.isBlank()
                 && trimmed.contains("@")
                 && trimmed.contains(".")
                 && !trimmed.contains("Resolving")
                 && !trimmed.contains("No public email")
-                && !trimmed.contains("example.com")
                 && !trimmed.endsWith("@noreply.github.com");
     }
 

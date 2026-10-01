@@ -1437,8 +1437,166 @@
             .subnav-tabs { padding: 0 var(--space-4); }
             .main-layout { padding: var(--space-4); }
             .metrics-strip { grid-template-columns: 1fr; }
-            .config-controls { flex-direction: column; align-items: stretch; }
-            .table-summary { display: none; }
+        }
+
+        /* ── Topbar Disconnect Button ── */
+        .disconnect-topbar-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #cf222e !important;
+            border-color: rgba(207, 34, 46, 0.3) !important;
+            background: rgba(207, 34, 46, 0.05) !important;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        .disconnect-topbar-btn:hover {
+            background: #cf222e !important;
+            color: #ffffff !important;
+            border-color: #cf222e !important;
+            transform: translateY(-1px);
+        }
+
+        /* ── Bottom Dock (Switch Load Bar) ── */
+        .bottom-switch-dock {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 90;
+            width: auto;
+            max-width: 92vw;
+            background: rgba(15, 23, 42, 0.94);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 9999px;
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.35), 0 4px 6px -2px rgba(0, 0, 0, 0.15);
+            padding: 7px 18px;
+            color: #ffffff;
+            transition: all 0.25s ease;
+        }
+
+        .bottom-dock-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .bottom-dock-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .bottom-status-indicator {
+            position: relative;
+            width: 10px;
+            height: 10px;
+        }
+
+        .pulse-dot {
+            width: 10px;
+            height: 10px;
+            background-color: #22c55e;
+            border-radius: 50%;
+            display: block;
+            box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+            animation: pulse-green 2s infinite;
+        }
+
+        @keyframes pulse-green {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+
+        .bottom-dock-sub {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #94a3b8;
+            font-weight: 600;
+            line-height: 1;
+            margin-bottom: 2px;
+        }
+
+        .bottom-dock-user {
+            font-size: 13px;
+            font-weight: 700;
+            color: #f8fafc;
+            font-family: var(--font-mono);
+        }
+
+        .bottom-dock-divider {
+            width: 1px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .bottom-dock-stat {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .stat-badge {
+            background: rgba(255, 255, 255, 0.12);
+            color: #38bdf8;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            font-size: 11px;
+            font-weight: 700;
+            font-family: var(--font-mono);
+        }
+
+        .stat-desc {
+            font-size: 11px;
+            color: #cbd5e1;
+        }
+
+        .bottom-dock-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .bottom-dock-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-decoration: none;
+            border: none;
+        }
+
+        .bottom-dock-btn.primary {
+            background: #2563eb;
+            color: #ffffff;
+            box-shadow: 0 2px 6px rgba(37, 99, 235, 0.4);
+        }
+
+        .bottom-dock-btn.primary:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+        }
+
+        .bottom-dock-btn.outline {
+            background: rgba(255, 255, 255, 0.08);
+            color: #cbd5e1;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .bottom-dock-btn.outline:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: #ffffff;
         }
     </style>
 </head>
@@ -1466,19 +1624,27 @@
     </div>
 
     <div class="topbar-actions">
-        <button type="button" class="ui-btn" id="installGitHubTopbarBtn" onclick="handleInstallGitHub()"
-           style="background: #24292f; color: #ffffff; border-color: #24292f; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; cursor: pointer; text-decoration: none;"
-           title="Install PR-Lens GitHub App on any repository to enable automated merging and triage">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-                <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
-            </svg>
-            <span th:text="${githubAppSlug != null && !githubAppSlug.isEmpty() ? 'Install on GitHub' : 'Create & Install GitHub App'}">Create & Install GitHub App</span>
-        </button>
+        <!-- Active User Badge & Switch Option in Header -->
+        <div id="topbarUserBadge" th:style="${activeUser != null && !activeUser.isEmpty() ? 'display: inline-flex;' : 'display: none;'}" style="display: none; align-items: center; gap: 8px; background: var(--color-canvas-inset); border: 1px solid var(--color-border-default); border-radius: 9999px; padding: 4px 12px; font-size: 12px;">
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #16a34a; box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.2);"></span>
+            <span class="topbar-user-name" th:text="${activeUser != null && !activeUser.isEmpty() ? '@' + activeUser : '@user'}" style="font-weight: 600; font-family: var(--font-mono); color: var(--color-fg-default);">@user</span>
+            <span id="topbarUserPrCount" style="font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 10px; background: rgba(37, 99, 235, 0.12); color: #2563eb;" th:text="${totalCount != null ? totalCount + ' PRs' : '0 PRs'}">0 PRs</span>
+            <button type="button" onclick="openLoginModal()" style="background: none; border: none; color: #0969da; font-weight: 600; font-size: 11px; cursor: pointer; text-decoration: underline; padding: 0;">Switch Account</button>
+        </div>
+
         <button class="ui-btn" id="syncBtn" onclick="triggerSyncNow()" aria-label="Trigger repository polling sync">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sync-icon">
                 <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
             </svg>
             <span>Sync Now</span>
+        </button>
+        <button type="button" class="ui-btn disconnect-topbar-btn" id="disconnectBtn" onclick="logoutActiveLoad()" title="Log out from active account load and re-verify">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            <span>Disconnect</span>
         </button>
         <a href="/email/preview" target="_blank" class="ui-btn" title="Inspect the latest generated HTML email notification">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1517,19 +1683,6 @@
         <span>Actioned Decisions</span>
         <span class="tab-counter" id="tabCounterActioned" th:text="${actionedCount}">0</span>
     </button>
-    <button class="subnav-tab" onclick="switchTab('ondemand')">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-        </svg>
-        <span>On-Demand Review</span>
-    </button>
-    <button class="subnav-tab" onclick="switchTab('profile')">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-            <circle cx="12" cy="7" r="4"></circle>
-        </svg>
-        <span>Profile Monitoring</span>
-    </button>
     <button class="subnav-tab" onclick="switchTab('github-app')">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
             <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
@@ -1537,12 +1690,6 @@
         <span>GitHub App</span>
         <span class="tab-counter" th:if="${githubAppConfigured != null and githubAppConfigured}" style="background:#dcfce7;color:#15803d;font-weight:600;">Active</span>
         <span class="tab-counter" th:unless="${githubAppConfigured != null and githubAppConfigured}" style="background:#fef3c7;color:#b45309;font-weight:600;">Install</span>
-    </button>
-    <button class="subnav-tab" onclick="switchTab('extension')">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48 2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48 2.83-2.83"></path>
-        </svg>
-        <span>Browser Extension</span>
     </button>
 </nav>
 
@@ -1643,7 +1790,7 @@
     </section>
 
     <!-- Quick Profile Setup Bar -->
-    <section class="config-banner" aria-label="Monitoring Profile Settings">
+    <section class="config-banner" aria-label="PR-Lens Monitoring Settings">
         <div class="config-info">
             <div class="config-title-row">
                 <div class="config-icon-badge">
@@ -1654,27 +1801,20 @@
                     </svg>
                 </div>
                 <div>
-                    <h2>Autonomous Profile Monitoring</h2>
+                    <h2>Autonomous PR-Lens Monitoring</h2>
                     <p>Background worker continuously checks open PRs across your GitHub repositories, calculates risk scores, and routes email PR-Lens alerts.</p>
                 </div>
             </div>
         </div>
         <div class="config-controls">
-            <div class="input-with-icon">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+            <!-- Active Monitored Account Display (Read-only badge; verified via GitHub Web) -->
+            <div class="active-monitored-account" style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; background: var(--color-canvas-subtle); border: 1px solid var(--color-border-default); border-radius: var(--radius-md); font-size: 13px; font-weight: 600; color: var(--color-fg-default);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="color: var(--color-fg-subtle);">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
                 </svg>
-                <input type="text" id="quickUsername" class="ui-input" placeholder="GitHub username" th:value="${profile.githubUsername}" aria-label="GitHub username" onkeydown="if(event.key==='Enter') handleAccountSwitch()">
+                <span id="monitoredAccountLabel" th:text="${activeUser != null && !activeUser.isEmpty() ? '@' + activeUser : 'No Account Loaded'}">No Account Loaded</span>
+                <input type="hidden" id="quickUsername" th:value="${profile.githubUsername}">
             </div>
-            <button class="ui-btn ui-btn-outline" onclick="handleAccountSwitch()" title="Switch active account and load their PR history">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                    <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                </svg>
-                <span>Switch / Load</span>
-            </button>
             <!-- Destination Email for PR-Lens Alerts & Decisions -->
             <div class="github-linked-email-card" id="linkedEmailCard" title="Destination email for PR-Lens decisions and alerts (click to edit, auto-detects from GitHub)">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="email-card-icon">
@@ -1878,20 +2018,20 @@
                                     </svg>
                                     <span>Details</span>
                                 </button>
-                                <a th:unless="${r.closed}" class="action-btn action-btn-approve" th:href="${r.approveUrl}" onclick="executeRowAction(this, event, 'approve')" title="Approve pull request">
+                                <a th:if="${!r.closed && !r.actioned}" class="action-btn action-btn-approve" th:href="${r.approveUrl}" onclick="executeRowAction(this, event, 'approve')" title="Approve pull request">
                                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                         <polyline points="20 6 9 17 4 12"></polyline>
                                     </svg>
                                     <span>Approve</span>
                                 </a>
-                                <a th:unless="${r.closed}" class="action-btn action-btn-changes" th:href="${r.changesUrl}" onclick="executeRowAction(this, event, 'request-changes')" title="Request changes on pull request">
+                                <a th:if="${!r.closed && !r.actioned}" class="action-btn action-btn-changes" th:href="${r.changesUrl}" onclick="executeRowAction(this, event, 'request-changes')" title="Request changes on pull request">
                                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                                     </svg>
                                     <span>Changes</span>
                                 </a>
-                                <a th:unless="${r.closed}" class="action-btn action-btn-reject" th:href="${r.closeUrl}" onclick="executeRowAction(this, event, 'close')" title="Close pull request">
+                                <a th:if="${!r.closed && !r.actioned}" class="action-btn action-btn-reject" th:href="${r.closeUrl}" onclick="executeRowAction(this, event, 'close')" title="Close pull request">
                                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                         <line x1="18" y1="6" x2="6" y2="18"></line>
                                         <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -2264,26 +2404,6 @@
                                     </svg>
                                     <span>Details</span>
                                 </button>
-                                <a class="action-btn action-btn-approve" th:href="${r.approveUrl}" onclick="executeRowAction(this, event, 'approve')" title="Approve pull request">
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                        <polyline points="20 6 9 17 4 12"></polyline>
-                                    </svg>
-                                    <span>Approve</span>
-                                </a>
-                                <a class="action-btn action-btn-changes" th:href="${r.changesUrl}" onclick="executeRowAction(this, event, 'request-changes')" title="Request changes on pull request">
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                    </svg>
-                                    <span>Changes</span>
-                                </a>
-                                <a class="action-btn action-btn-reject" th:href="${r.closeUrl}" onclick="executeRowAction(this, event, 'close')" title="Close pull request">
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                                    </svg>
-                                    <span>Close</span>
-                                </a>
                             </span>
                         </td>
                     </tr>
@@ -2305,107 +2425,6 @@
         </div>
     </div>
 
-    <!-- ── Tab 2: On-Demand PR Review ── -->
-    <div id="tab-ondemand" class="tab-pane" style="display: none;">
-        <div class="card-panel">
-            <div class="card-header">
-                <h2 class="card-title">On-Demand Pull Request PR-Lens Review</h2>
-                <p class="card-desc">Execute heuristics, security scanning, and smart summary pipeline on any GitHub pull request URL immediately.</p>
-            </div>
-
-            <div style="display: flex; gap: var(--space-2); max-width: 680px; margin-bottom: var(--space-4);">
-                <input type="url" id="ondemandUrl" class="ui-input" style="flex: 1; height: 34px;" placeholder="https://github.com/owner/repository/pull/123" aria-label="Pull request URL">
-                <button class="ui-btn ui-btn-primary" id="btnRunTriage" style="height: 34px;" onclick="executeOnDemandTriage()">
-                    <span id="btnTriageText">Analyze PR</span>
-                </button>
-            </div>
-
-            <div id="triageLoading" style="display: none; padding: var(--space-3) 0; color: var(--color-fg-muted); font-size: 12px; align-items: center; gap: 8px;">
-                <svg class="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
-                    <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
-                </svg>
-                <span>Fetching diff, evaluating risk heuristics, and generating summary...</span>
-            </div>
-
-            <div id="triageResultBox" style="display: none; margin-top: var(--space-4);"></div>
-        </div>
-    </div>
-
-    <!-- ── Tab 3: Profile Monitoring Settings ── -->
-    <div id="tab-profile" class="tab-pane" style="display: none;">
-        <div class="card-panel" style="max-width: 640px;">
-            <div class="card-header">
-                <h2 class="card-title">GitHub Profile Auto PR-Lens Configuration</h2>
-                <p class="card-desc">Configure the background polling daemon to continuously monitor pull requests across your GitHub account.</p>
-            </div>
-
-            <div class="form-grid">
-                <div class="form-group">
-                    <label class="form-label" for="profUsername">GitHub Username</label>
-                    <input type="text" id="profUsername" class="ui-input" th:value="${profile.githubUsername}" placeholder="e.g. octocat">
-                    <span class="form-hint">The GitHub account whose repositories will be inspected.</span>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="profEmail">Notification & PR-Lens Alert Email</label>
-                    <div style="display: flex; gap: var(--space-2); align-items: center;">
-                        <input type="email" id="profEmail" class="ui-input" th:value="${profile.notificationEmail != null ? profile.notificationEmail : ''}" placeholder="e.g. yourname@gmail.com" style="flex: 1;">
-                        <button type="button" class="ui-btn ui-btn-outline" onclick="fetchLinkedEmailForUser(document.getElementById('profUsername').value.trim())" title="Fetch email directly from GitHub account">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
-                            </svg>
-                            <span>Fetch from GitHub</span>
-                        </button>
-                    </div>
-                    <span class="form-hint">Alert emails with one-click Approve / Reject decisions are delivered to this address. If left blank, it auto-detects from GitHub.</span>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="profRepos">Monitored Repositories (Optional)</label>
-                    <input type="text" id="profRepos" class="ui-input" th:value="${profile.monitoredRepos}" placeholder="repo1, owner/repo2">
-                    <span class="form-hint">Comma-separated repository names. If left blank, all repositories for this user are monitored.</span>
-                </div>
-
-                <div class="form-group">
-                    <label class="ui-toggle">
-                        <input type="checkbox" id="profAutoToggle" th:checked="${profile.autoTriageEnabled}">
-                        <span>Permanently enable automatic background PR-Lens review</span>
-                    </label>
-                </div>
-
-                <div style="margin-top: var(--space-2);">
-                    <button class="ui-btn ui-btn-primary" onclick="saveProfileFull()">Save Configuration</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ── Tab 4: Browser Extension Setup ── -->
-    <div id="tab-extension" class="tab-pane" style="display: none;">
-        <div class="card-panel" style="max-width: 680px;">
-            <div class="card-header">
-                <h2 class="card-title">Glint Browser Extension (Manifest V3)</h2>
-                <p class="card-desc">Review both public and private GitHub pull requests directly within GitHub.com using PR-Lens session-level diff extraction.</p>
-            </div>
-
-            <div style="background-color: var(--color-canvas-subtle); border: 1px solid var(--color-border-default); border-radius: var(--radius-md); padding: var(--space-4); margin-bottom: var(--space-4);">
-                <div style="font-weight: 600; font-size: 12px; margin-bottom: var(--space-2);">Installation Instructions</div>
-                <ol style="margin-left: var(--space-4); font-size: 12px; color: var(--color-fg-muted); line-height: 1.8;">
-                    <li>Navigate to <code style="font-family: var(--font-mono); font-size: 11px; background: var(--color-canvas-inset); padding: 1px 4px; border-radius: 3px;">chrome://extensions/</code> in Chrome or Edge.</li>
-                    <li>Toggle <strong>Developer mode</strong> in the top-right corner.</li>
-                    <li>Click <strong>Load unpacked</strong>.</li>
-                    <li>Select the <code style="font-family: var(--font-mono); font-size: 11px; background: var(--color-canvas-inset); padding: 1px 4px; border-radius: 3px;">extension</code> directory from this workspace.</li>
-                    <li>Open any Pull Request on GitHub to view embedded PR-Lens badges and actions.</li>
-                </ol>
-            </div>
-
-            <div style="display: flex; gap: var(--space-2);">
-                <a href="/api/history" target="_blank" class="ui-btn">REST History Endpoint</a>
-                <a href="/api/stats" target="_blank" class="ui-btn">REST Stats Endpoint</a>
-            </div>
-        </div>
-    </div>
 
     <!-- ── Tab: GitHub App Integration (CodeRabbit-Style Auto-Merge) ── -->
     <div id="tab-github-app" class="tab-pane" style="display: none;">
@@ -2602,6 +2621,121 @@
             <a id="modalApproveBtn" href="#" class="action-btn action-btn-approve" onclick="executeModalAction(this, event, 'approve')">Approve</a>
             <a id="modalChangesBtn" href="#" class="action-btn action-btn-changes" onclick="executeModalAction(this, event, 'request-changes')">Request Changes</a>
             <a id="modalCloseBtn" href="#" class="action-btn action-btn-reject" onclick="executeModalAction(this, event, 'close')">Close PR</a>
+        </div>
+    </div>
+</div>
+
+<!-- ── GitHub Installation & Account Login Modal (Direct/First Window) ── -->
+<div class="modal-overlay" id="loginModal" role="dialog" aria-modal="true" aria-labelledby="loginModalTitle" style="display: none; z-index: 1000; background: rgba(15, 23, 42, 0.78); backdrop-filter: blur(8px);">
+    <div class="modal-dialog" style="max-width: 540px; border-radius: 16px; border: 1px solid rgba(226, 232, 240, 0.8); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
+        <div class="modal-header" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #ffffff; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding: 22px 24px; border-top-left-radius: 15px; border-top-right-radius: 15px;">
+            <div style="display: flex; align-items: center; gap: 14px;">
+                <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(255, 255, 255, 0.12); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255, 255, 255, 0.2);">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                        <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h2 id="loginModalTitle" style="font-size: 17px; font-weight: 700; color: #ffffff; margin-bottom: 3px;">GitHub Workspace Access</h2>
+                    <p style="font-size: 12px; color: #94a3b8; margin: 0;">Connect your account to check GitHub installation and load your private PRs.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-body" style="padding: 24px;">
+            <!-- Primary One-Click GitHub Web Verification / Installation -->
+            <div style="margin-bottom: 20px;">
+                <button type="button" onclick="redirectToGitHubVerify('')"
+                        style="width: 100%; background: #24292f; color: #ffffff; border: none; height: 46px; font-size: 14px; font-weight: 600; border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.15); transition: background 0.2s ease;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                    </svg>
+                    <span>Sign In &amp; Verify via GitHub Web</span>
+                </button>
+                <div style="font-size: 11px; color: var(--color-fg-subtle); margin-top: 6px; text-align: center;">
+                    🔒 Checks your logged-in GitHub account on the web to ensure only you can view your load.
+                </div>
+            </div>
+
+            <!-- Divider -->
+            <div style="display: flex; align-items: center; gap: 10px; margin: 18px 0; color: var(--color-fg-subtle); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">
+                <div style="flex: 1; height: 1px; background: var(--color-border-default);"></div>
+                <span>Or Check Account Installation</span>
+                <div style="flex: 1; height: 1px; background: var(--color-border-default);"></div>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label for="loginUserInput" style="display: block; font-size: 13px; font-weight: 600; color: var(--color-fg-default); margin-bottom: 8px;">
+                    GitHub Username or Organization
+                </label>
+                <div style="position: relative;">
+                    <div style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--color-fg-subtle);">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                    </div>
+                    <input type="text" id="loginUserInput" class="ui-input" placeholder="e.g. pranavsuryawanshi11 or octocat" 
+                           style="padding-left: 40px; font-size: 14px; height: 44px; border-radius: 8px; width: 100%; border: 1.5px solid var(--color-border-default);"
+                           onkeydown="if(event.key==='Enter') checkAndLoadUserInstallation()">
+                </div>
+                <div style="font-size: 11px; color: var(--color-fg-subtle); margin-top: 6px;">
+                    🔒 Anti-impersonation protected: only the confirmed owner of an account can open its load.
+                </div>
+            </div>
+
+            <!-- Verification Status Card -->
+            <div id="installationStatusCard" style="display: none; border-radius: 10px; padding: 16px; margin-bottom: 20px; transition: all 0.3s ease;"></div>
+
+            <!-- Action Buttons -->
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <button type="button" id="btnCheckInstallation" class="ui-btn" onclick="checkAndLoadUserInstallation()"
+                        style="background: #2563eb; color: #ffffff; border: none; height: 44px; font-size: 14px; font-weight: 600; border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.25);">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    <span id="btnCheckText">Check Installation &amp; Verify</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="modal-footer" style="padding: 14px 24px; background: var(--color-canvas-subtle); display: flex; justify-content: center; align-items: center; border-bottom-left-radius: 15px; border-bottom-right-radius: 15px;">
+            <span style="font-size: 12px; color: var(--color-fg-subtle); display: flex; align-items: center; gap: 6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #16a34a;">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+                <span>Verification required to access pull requests and triage workspace</span>
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- ── Bottom Dock: Option to Switch Load ── -->
+<div id="bottomSwitchDock" class="bottom-switch-dock">
+    <div class="bottom-dock-content">
+        <div class="bottom-dock-left">
+            <div class="bottom-status-indicator">
+                <span class="pulse-dot"></span>
+            </div>
+            <div>
+                <div class="bottom-dock-sub">Active Account Load</div>
+                <div class="bottom-dock-user" id="bottomDockUser">
+                    <span th:text="${activeUser != null && !activeUser.isEmpty() ? '@' + activeUser : 'No Account Loaded'}">No Account Loaded</span>
+                </div>
+            </div>
+            <div class="bottom-dock-divider"></div>
+            <div class="bottom-dock-stat">
+                <span class="stat-badge" id="bottomDockPrCount" th:text="${totalCount != null ? totalCount + ' PRs' : '0 PRs'}">0 PRs</span>
+                <span class="stat-desc">isolated to this user</span>
+            </div>
+        </div>
+        <div class="bottom-dock-right">
+            <button type="button" class="bottom-dock-btn primary" onclick="openLoginModal()" title="Switch GitHub account load">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                </svg>
+                <span>Switch Account</span>
+            </button>
         </div>
     </div>
 </div>
@@ -2912,8 +3046,89 @@
     // Initialize resolvers and filters on DOM load
     function initDashboard() {
         setupUsernameEmailResolvers();
+
+        // 1. Determine active user from URL or check verified credentials
+        const urlParams = new URLSearchParams(window.location.search);
+        let userFromUrl = urlParams.get('user');
+        let isVerifyExplicit = urlParams.get('verify') === 'true' || urlParams.get('login') === 'manual';
+        if (isVerifyExplicit) {
+            sessionStorage.removeItem('pr_lens_active_user');
+            localStorage.removeItem('pr_lens_active_user');
+            updateDockUser('');
+            openLoginModal('');
+            filterHistory();
+            return;
+        }
+        let userFromStorage = sessionStorage.getItem('pr_lens_active_user') || localStorage.getItem('pr_lens_active_user');
+
+        // If this window is a popup / different window opened for GitHub verification/installation:
+        const isChildPopup = (window.opener && !window.opener.closed && window.opener !== window);
+        if (isChildPopup && (urlParams.get('installed') === 'true' || urlParams.get('verified') === 'true' || userFromUrl)) {
+            try {
+                window.opener.postMessage({
+                    type: 'PR_LENS_AUTH_SUCCESS',
+                    user: userFromUrl || '',
+                    url: window.location.href
+                }, '*');
+                window.opener.location.href = window.location.href;
+                setTimeout(() => window.close(), 600);
+            } catch (e) {
+                console.log('Opener communication error:', e);
+            }
+        }
+
+        if (userFromUrl && userFromUrl.trim()) {
+            const activeUser = userFromUrl.trim();
+            // Verify with backend before loading workspace data
+            fetch('/api/check-user-installation?user=' + encodeURIComponent(activeUser) + '&confirm=true')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.isVerified || data.installed) {
+                        sessionStorage.setItem('pr_lens_active_user', activeUser);
+                        localStorage.setItem('pr_lens_active_user', activeUser);
+                        updateDockUser(activeUser);
+                        const quickUserEl = document.getElementById('quickUsername');
+                        if (quickUserEl) quickUserEl.value = activeUser;
+                        fetchLinkedEmailForUser(activeUser);
+                        loadUserHistory(activeUser);
+                    } else {
+                        // User is not installed! Prompt installation
+                        sessionStorage.removeItem('pr_lens_active_user');
+                        localStorage.removeItem('pr_lens_active_user');
+                        updateDockUser('');
+                        openLoginModal(activeUser);
+                        const input = document.getElementById('loginUserInput');
+                        if (input) input.value = activeUser;
+                        checkAndLoadUserInstallation();
+                    }
+                })
+                .catch(() => {
+                    openLoginModal(activeUser);
+                });
+        } else {
+            // First directly open window of GitHub installation and check user installed or not
+            updateDockUser('');
+            openLoginModal(userFromStorage ? userFromStorage.trim() : '');
+        }
+
         filterHistory();
     }
+
+    window.addEventListener('message', function(event) {
+        if (event.data && event.data.type === 'PR_LENS_AUTH_SUCCESS') {
+            if (typeof authCheckTimer !== 'undefined' && authCheckTimer) {
+                clearInterval(authCheckTimer);
+                authCheckTimer = null;
+            }
+            if (event.data.user) {
+                applyUserLogin(event.data.user);
+            }
+            if (event.data.url) {
+                window.location.href = event.data.url;
+            }
+        }
+    });
+
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initDashboard);
     } else {
@@ -3113,9 +3328,25 @@
             modalBugBadge.style.display = hasBugInModal ? 'inline-flex' : 'none';
         }
 
-        document.getElementById('modalApproveBtn').href = approve || '#';
-        document.getElementById('modalChangesBtn').href = changes || '#';
-        document.getElementById('modalCloseBtn').href = close || '#';
+        const tr = btn ? btn.closest('tr') : null;
+        const isActioned = tr && (tr.dataset.actioned === 'true' || tr.querySelector('.badge-completed') !== null);
+        const isClosed = tr && (tr.dataset.closed === 'true' || tr.querySelector('.badge-closed') !== null);
+
+        const modalApprove = document.getElementById('modalApproveBtn');
+        if (modalApprove) {
+            modalApprove.href = approve || '#';
+            modalApprove.style.display = (!isActioned && !isClosed && approve) ? 'inline-flex' : 'none';
+        }
+        const modalChanges = document.getElementById('modalChangesBtn');
+        if (modalChanges) {
+            modalChanges.href = changes || '#';
+            modalChanges.style.display = (!isActioned && !isClosed && changes) ? 'inline-flex' : 'none';
+        }
+        const modalClose = document.getElementById('modalCloseBtn');
+        if (modalClose) {
+            modalClose.href = close || '#';
+            modalClose.style.display = (!isActioned && !isClosed && close) ? 'inline-flex' : 'none';
+        }
 
         document.getElementById('prModal').style.display = 'flex';
     }
@@ -3146,10 +3377,257 @@
     function handleAccountSwitch() {
         const input = document.getElementById('quickUsername');
         const user = input ? input.value.trim() : '';
+        if (user) {
+            applyUserLogin(user);
+        } else {
+            openLoginModal();
+        }
+    }
+
+    function openLoginModal(prefillUser) {
+        const modal = document.getElementById('loginModal');
+        if (!modal) return;
+        modal.style.display = 'flex';
+
+        const input = document.getElementById('loginUserInput');
+        if (input) {
+            const current = prefillUser || sessionStorage.getItem('pr_lens_active_user') || (document.getElementById('quickUsername') ? document.getElementById('quickUsername').value : '');
+            input.value = current ? current.trim() : '';
+            setTimeout(() => input.focus(), 100);
+        }
+
+        const card = document.getElementById('installationStatusCard');
+        if (card) {
+            card.style.display = 'none';
+            card.innerHTML = '';
+        }
+    }
+
+    function closeLoginModal() {
+        const modal = document.getElementById('loginModal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    async function checkAndLoadUserInstallation() {
+        const input = document.getElementById('loginUserInput');
+        const user = input ? input.value.trim() : '';
+        if (!user) {
+            alert('Please enter a GitHub username or organization.');
+            if (input) input.focus();
+            return;
+        }
+
+        const btn = document.getElementById('btnCheckInstallation');
+        const btnText = document.getElementById('btnCheckText');
+        const card = document.getElementById('installationStatusCard');
+
+        if (btn) btn.disabled = true;
+        if (btnText) btnText.innerHTML = '<svg class="spinner" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path></svg> <span>Checking GitHub Installation...</span>';
+
+        if (card) {
+            card.style.display = 'block';
+            card.style.background = '#f8fafc';
+            card.style.border = '1px solid #e2e8f0';
+            card.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 10px; font-size: 13px; color: #475569;">
+                    <svg class="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path></svg>
+                    <span>Checking GitHub App installation for <strong>@${escapeHtml(user)}</strong>...</span>
+                </div>
+            `;
+        }
+
+        try {
+            const res = await fetch('/api/check-user-installation?user=' + encodeURIComponent(user));
+            if (!res.ok) {
+                throw new Error('Failed to verify GitHub installation status.');
+            }
+            const data = await res.json();
+
+            if (data.installed) {
+                // If the app is confirmed installed on GitHub for this account, confirm ownership and show the SUCCESS card!
+                if (!data.isVerified) {
+                    try {
+                        const confirmRes = await fetch('/api/confirm-user-installation?user=' + encodeURIComponent(user), { method: 'POST' });
+                        if (confirmRes.ok) {
+                            data.isVerified = true;
+                        }
+                    } catch (e) {
+                        console.log('Auto-confirm notice:', e);
+                    }
+                }
+
+                // Show the green SUCCESS card!
+                if (card) {
+                    card.style.background = '#f0fdf4';
+                    card.style.border = '1.5px solid #86efac';
+                    card.innerHTML = `
+                        <div style="display: flex; align-items: flex-start; gap: 12px;">
+                            <div style="width: 28px; height: 28px; border-radius: 50%; background: #16a34a; color: white; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: bold; flex-shrink: 0;">✓</div>
+                            <div style="flex: 1;">
+                                <div style="font-weight: 700; color: #15803d; font-size: 14px; margin-bottom: 2px;">
+                                    GitHub App Verified &amp; Account Confirmed!
+                                </div>
+                                <div style="font-size: 12px; color: #166534; line-height: 1.4; margin-bottom: 10px;">
+                                    PR-Lens is connected to <strong>@${escapeHtml(user)}</strong> with verified permissions (Installation #${data.installationId}). Ready to triage pull requests.
+                                </div>
+                                <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                                    <button type="button" class="ui-btn" onclick="applyUserLogin('${escapeHtml(user)}')"
+                                            style="background: #16a34a; color: white; border: none; font-weight: 600; font-size: 13px; padding: 7px 16px; border-radius: 6px; cursor: pointer; box-shadow: 0 2px 4px rgba(22,163,74,0.25);">
+                                        <span>Open My Load &amp; View PRs &rarr;</span>
+                                    </button>
+                                    <button type="button" class="ui-btn" onclick="redirectToGitHubVerify('${escapeHtml(data.installUrl || '')}')"
+                                            style="background: #ffffff; color: #475569; border: 1px solid #cbd5e1; font-weight: 500; font-size: 12px; padding: 6px 12px; border-radius: 6px; cursor: pointer;">
+                                        <span>Open on GitHub Web</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                setTimeout(() => {
+                    applyUserLogin(user);
+                }, 1000);
+
+            } else {
+                if (card) {
+                    card.style.background = '#fffbeb';
+                    card.style.border = '1.5px solid #fcd34d';
+                    card.innerHTML = `
+                        <div style="display: flex; align-items: flex-start; gap: 12px;">
+                            <div style="width: 28px; height: 28px; border-radius: 50%; background: #f59e0b; color: white; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: bold; flex-shrink: 0;">!</div>
+                            <div style="flex: 1;">
+                                <div style="font-weight: 700; color: #b45309; font-size: 14px; margin-bottom: 2px;">
+                                    GitHub App Not Installed Yet
+                                </div>
+                                <div style="font-size: 12px; color: #92400e; line-height: 1.4; margin-bottom: 12px;">
+                                    PR-Lens is not yet installed on <strong>@${escapeHtml(user)}</strong>. Install it on your GitHub repositories to enable automated pull request triage and 1-click Approve/Reject buttons.
+                                </div>
+                                <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                                    <button type="button" class="ui-btn" onclick="openGitHubInstallWindow('${escapeHtml(data.githubAppSlug || '')}')"
+                                            style="background: #24292f; color: white; border: none; font-weight: 600; font-size: 12px; padding: 6px 14px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                                            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                                        </svg>
+                                        <span>Install on GitHub</span>
+                                    </button>
+                                    <button type="button" class="ui-btn" onclick="checkAndLoadUserInstallation()"
+                                            style="background: #ffffff; color: #475569; border: 1px solid #cbd5e1; font-weight: 500; font-size: 12px; padding: 6px 12px; border-radius: 6px; cursor: pointer;">
+                                        <span>Re-Check</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+        } catch (err) {
+            if (card) {
+                card.style.background = '#fef2f2';
+                card.style.border = '1px solid #fecaca';
+                card.innerHTML = `<div style="color: #991b1b; font-size: 13px;">Error verifying installation: ${escapeHtml(err.message)}</div>`;
+            }
+        } finally {
+            if (btn) btn.disabled = false;
+            if (btnText) btnText.innerHTML = 'Check Installation &amp; Verify';
+        }
+    }
+
+    let authWindow = null;
+    let authCheckTimer = null;
+
+    function redirectToGitHubVerify(installUrl) {
+        const url = (installUrl && installUrl.trim() !== '') ? installUrl.trim() : '/auth/github';
+        const width = 1040;
+        const height = 820;
+        const left = Math.max(0, Math.floor((window.screen.width - width) / 2));
+        const top = Math.max(0, Math.floor((window.screen.height - height) / 2));
+
+        // Open in a separate window by itself so users can log in to other accounts cleanly
+        try {
+            authWindow = window.open(
+                url,
+                'pr_lens_github_verify',
+                `width=${width},height=${height},top=${top},left=${left},menubar=no,toolbar=no,location=yes,status=yes,resizable=yes,scrollbars=yes`
+            );
+            if (authWindow && authWindow.focus) {
+                authWindow.focus();
+            }
+        } catch (e) {
+            authWindow = window.open(url, '_blank');
+        }
+
+        // Periodically verify in background until installation finishes and popup redirects
+        if (authCheckTimer) clearInterval(authCheckTimer);
+        authCheckTimer = setInterval(() => {
+            if (authWindow && authWindow.closed) {
+                clearInterval(authCheckTimer);
+                authCheckTimer = null;
+                const userInput = document.getElementById('loginUserInput');
+                const user = (userInput && userInput.value) ? userInput.value.trim() : (sessionStorage.getItem('pr_lens_active_user') || '');
+                if (user) {
+                    checkAndLoadUserInstallation();
+                } else {
+                    window.location.reload();
+                }
+            }
+        }, 1500);
+    }
+
+    function openGitHubInstallWindow(slug) {
+        if (slug && slug.trim() !== '') {
+            redirectToGitHubVerify('https://github.com/apps/' + encodeURIComponent(slug.trim()) + '/installations/new');
+        } else {
+            handleInstallGitHub();
+        }
+    }
+
+    function applyUserLogin(user) {
         if (!user) return;
-        loadUserHistory(user);
-        fetchLinkedEmailForUser(user);
-        window.history.pushState(null, '', '/?user=' + encodeURIComponent(user));
+        const cleanUser = user.trim();
+
+        sessionStorage.setItem('pr_lens_active_user', cleanUser);
+        localStorage.setItem('pr_lens_active_user', cleanUser);
+
+        window.history.pushState(null, '', '/?user=' + encodeURIComponent(cleanUser));
+
+        const quickInput = document.getElementById('quickUsername');
+        if (quickInput) quickInput.value = cleanUser;
+
+        updateDockUser(cleanUser);
+        closeLoginModal();
+
+        loadUserHistory(cleanUser);
+        fetchLinkedEmailForUser(cleanUser);
+
+        showToast('Load Opened', 'Loaded private workspace for @' + cleanUser, 'success');
+    }
+
+    function logoutActiveLoad() {
+        sessionStorage.clear();
+        localStorage.clear();
+        window.location.href = '/logout';
+    }
+
+    function updateDockUser(username) {
+        const dockEl = document.getElementById('bottomDockUser');
+        if (dockEl) {
+            dockEl.innerText = username ? '@' + username : 'No Account Loaded';
+        }
+        const monitoredLabel = document.getElementById('monitoredAccountLabel');
+        if (monitoredLabel) {
+            monitoredLabel.innerText = username ? '@' + username : 'No Account Loaded';
+        }
+        const topbarUserBadge = document.getElementById('topbarUserBadge');
+        if (topbarUserBadge) {
+            if (username) {
+                topbarUserBadge.style.display = 'inline-flex';
+                const nameEl = topbarUserBadge.querySelector('.topbar-user-name');
+                if (nameEl) nameEl.innerText = '@' + username;
+            } else {
+                topbarUserBadge.style.display = 'none';
+            }
+        }
     }
 
     async function loadUserHistory(user) {
@@ -3168,6 +3646,12 @@
             if (statsRes.ok) {
                 const stats = await statsRes.json();
                 updateKpiMetrics(stats);
+            }
+
+            if (historyRes.status === 403) {
+                showToast('Access Blocked', 'You cannot view @' + user + '\'s private workspace without GitHub verification.', 'danger');
+                openLoginModal();
+                return;
             }
 
             if (historyRes.ok) {
@@ -3217,6 +3701,11 @@
             metricValues[4].innerText = closed;
             metricValues[5].innerText = actioned;
         }
+
+        const bottomPrCount = document.getElementById('bottomDockPrCount');
+        if (bottomPrCount) bottomPrCount.innerText = total + (total === 1 ? ' PR' : ' PRs');
+        const topbarPrCount = document.getElementById('topbarUserPrCount');
+        if (topbarPrCount) topbarPrCount.innerText = total + (total === 1 ? ' PR' : ' PRs');
     }
 
     function addClosedRowToClosedSection(tr) {
@@ -3416,6 +3905,7 @@
         let rowsHtml = '';
         rows.forEach(r => {
             const isClosed = (r.closed === true || r.status === 'CLOSED' || r.actionType === 'close' || r.actionType === 'reject');
+            const isActioned = (r.actionTaken === true || r.status === ('ACTION' + 'ED') || r.status === 'DONE' || isClosed);
             const repBadge = r.authorReputation ? `
                 <span class="rep-pill ${escapeHtml(r.authorReputation)}" title="${escapeHtml(r.authorReputationDetail || '')}">
                     ${escapeHtml(r.authorReputation.replace(/_/g, ' '))}
@@ -3473,9 +3963,9 @@
                         </svg>
                         <span>Details</span>
                     </button>
-                    ${(!isClosed && r.approveUrl) ? `<a class="action-btn action-btn-approve" href="${escapeHtml(r.approveUrl)}" onclick="executeRowAction(this, event, 'approve')" title="Approve pull request"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Approve</span></a>` : ''}
-                    ${(!isClosed && r.changesUrl) ? `<a class="action-btn action-btn-changes" href="${escapeHtml(r.changesUrl)}" onclick="executeRowAction(this, event, 'request-changes')" title="Request changes"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg><span>Changes</span></a>` : ''}
-                    ${(!isClosed && r.closeUrl) ? `<a class="action-btn action-btn-reject" href="${escapeHtml(r.closeUrl)}" onclick="executeRowAction(this, event, 'close')" title="Close PR"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg><span>Close</span></a>` : ''}
+                    ${(!isClosed && !isActioned && r.approveUrl) ? `<a class="action-btn action-btn-approve" href="${escapeHtml(r.approveUrl)}" onclick="executeRowAction(this, event, 'approve')" title="Approve pull request"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Approve</span></a>` : ''}
+                    ${(!isClosed && !isActioned && r.changesUrl) ? `<a class="action-btn action-btn-changes" href="${escapeHtml(r.changesUrl)}" onclick="executeRowAction(this, event, 'request-changes')" title="Request changes"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg><span>Changes</span></a>` : ''}
+                    ${(!isClosed && !isActioned && r.closeUrl) ? `<a class="action-btn action-btn-reject" href="${escapeHtml(r.closeUrl)}" onclick="executeRowAction(this, event, 'close')" title="Close PR"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg><span>Close</span></a>` : ''}
                 </span>
             `;
 
@@ -3648,23 +4138,24 @@
                 if (actionsCell) {
                     const group = actionsCell.querySelector('.action-button-group');
                     if (group) {
+                        const approveBtn = group.querySelector('.action-btn-approve');
+                        if (approveBtn) approveBtn.remove();
+                        const changesBtn = group.querySelector('.action-btn-changes');
+                        if (changesBtn) changesBtn.remove();
+                        const closeBtn = group.querySelector('.action-btn-reject');
+                        if (closeBtn) closeBtn.remove();
+
+                        const oldBadge = group.querySelector('.badge-completed') || group.querySelector('.badge-closed');
+                        if (oldBadge) oldBadge.remove();
+
                         if (isClose) {
-                            const oldBadge = group.querySelector('.badge-completed') || group.querySelector('.badge-closed');
-                            if (oldBadge) oldBadge.remove();
                             const badge = document.createElement('span');
                             badge.className = 'badge-closed';
                             badge.style.cssText = 'margin-right: 4px; padding: 3px 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;';
                             badge.title = 'Closed pull request';
                             badge.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg><span>CLOSED</span>`;
                             group.insertBefore(badge, group.firstChild);
-
-                            const approveBtn = group.querySelector('.action-btn-approve');
-                            if (approveBtn) approveBtn.remove();
-                            const changesBtn = group.querySelector('.action-btn-changes');
-                            if (changesBtn) changesBtn.remove();
-                            const closeBtn = group.querySelector('.action-btn-reject');
-                            if (closeBtn) closeBtn.remove();
-                        } else if (!group.querySelector('.badge-completed')) {
+                        } else {
                             const badge = document.createElement('span');
                             badge.className = 'badge-completed';
                             badge.style.cssText = 'margin-right: 4px; padding: 3px 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;';
@@ -3675,8 +4166,10 @@
                     }
                 }
 
-                element.innerHTML = originalContent;
-                element.style.pointerEvents = '';
+                if (tr) {
+                    tr.dataset.actioned = 'true';
+                    if (isClose) tr.dataset.closed = 'true';
+                }
 
                 // Increment decisions counters
                 const kpiDec = document.getElementById('kpiDecisionsCount');

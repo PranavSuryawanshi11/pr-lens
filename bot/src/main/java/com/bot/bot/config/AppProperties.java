@@ -15,4 +15,5 @@ public class AppProperties {
     private boolean reviewSummaryEnabled = true;
     private String actionSecret;
     private String baseUrl;
+    private long actionTokenExpiryDays = 30;
 }

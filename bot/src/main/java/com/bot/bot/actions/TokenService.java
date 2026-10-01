@@ -32,11 +32,16 @@ public class TokenService {
     private final MetaRepository metaRepository;
 
     public TokenService(AppProperties props, MetaRepository metaRepository) {
-        this.secret = props.getActionSecret();
-        String b = props.getBaseUrl();
+        this.secret = props != null ? props.getActionSecret() : null;
+        String b = props != null ? props.getBaseUrl() : null;
         this.baseUrl = (b != null && !b.isBlank()) ? b.replaceAll("/+$", "") : "http://localhost:8080";
-        this.expirySeconds = 30L * 60; // 30 minutes
+        long days = (props != null && props.getActionTokenExpiryDays() > 0) ? props.getActionTokenExpiryDays() : 30L;
+        this.expirySeconds = days * 24L * 60L * 60L; // 30 days (2,592,000 seconds)
         this.metaRepository = metaRepository;
+    }
+
+    public long getExpirySeconds() {
+        return expirySeconds;
     }
 
     public record TokenPayload(String owner, String repo, int prNumber, String action, long expiryEpoch) {}
