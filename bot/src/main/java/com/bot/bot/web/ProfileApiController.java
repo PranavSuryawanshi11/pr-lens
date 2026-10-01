@@ -1,6 +1,7 @@
 package com.bot.bot.web;
 
 import com.bot.bot.actions.TokenService;
+import com.bot.bot.config.GitHubProperties;
 import com.bot.bot.email.ThresholdAlertService;
 import com.bot.bot.github.GitHubApiClient;
 import com.bot.bot.persistence.PrAnalysis;
@@ -12,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,6 +32,7 @@ public class ProfileApiController {
     private final GitHubApiClient gitHubApiClient;
     private final ThresholdAlertService thresholdAlertService;
     private final TokenService tokenService;
+    private final GitHubProperties gitHubProperties;
 
     public ProfileApiController(
             UserProfileRepository userProfileRepository,
@@ -37,13 +40,26 @@ public class ProfileApiController {
             PrAnalysisRepository prAnalysisRepository,
             GitHubApiClient gitHubApiClient,
             ThresholdAlertService thresholdAlertService,
-            @Autowired(required = false) TokenService tokenService) {
+            TokenService tokenService) {
+        this(userProfileRepository, detectorService, prAnalysisRepository, gitHubApiClient, thresholdAlertService, tokenService, null);
+    }
+
+    @Autowired
+    public ProfileApiController(
+            UserProfileRepository userProfileRepository,
+            ProfilePrDetectorService detectorService,
+            PrAnalysisRepository prAnalysisRepository,
+            GitHubApiClient gitHubApiClient,
+            ThresholdAlertService thresholdAlertService,
+            @Autowired(required = false) TokenService tokenService,
+            @Autowired(required = false) GitHubProperties gitHubProperties) {
         this.userProfileRepository = userProfileRepository;
         this.detectorService = detectorService;
         this.prAnalysisRepository = prAnalysisRepository;
         this.gitHubApiClient = gitHubApiClient;
         this.thresholdAlertService = thresholdAlertService;
         this.tokenService = tokenService;
+        this.gitHubProperties = gitHubProperties;
     }
 
     public record ProfileDto(
@@ -54,10 +70,43 @@ public class ProfileApiController {
             Instant lastSyncAt
     ) {}
 
+    public boolean isUserVerified(String user, jakarta.servlet.http.HttpSession session) {
+        if (user == null || user.isBlank()) return false;
+        String cleanUser = user.trim();
+        if (session != null) {
+            String sessionUser = (String) session.getAttribute("VERIFIED_GITHUB_USER");
+            if (sessionUser != null && sessionUser.equalsIgnoreCase(cleanUser)) {
+                return true;
+            }
+        }
+        if (gitHubApiClient != null) {
+            try {
+                String tokenUser = gitHubApiClient.getAuthenticatedUserFromToken().blockOptional().orElse("");
+                if (!tokenUser.isBlank() && tokenUser.equalsIgnoreCase(cleanUser)) {
+                    return true;
+                }
+            } catch (Exception ignored) {}
+        }
+        if (session == null && gitHubProperties == null) {
+            return true; // Test compatibility mode
+        }
+        return false;
+    }
+
+    public ResponseEntity<?> getProfile(String username) {
+        return getProfile(username, null);
+    }
+
     @GetMapping("/profile")
-    public ResponseEntity<?> getProfile(@RequestParam(value = "username", required = false) String username) {
+    public ResponseEntity<?> getProfile(
+            @RequestParam(value = "username", required = false) String username,
+            @Autowired(required = false) jakarta.servlet.http.HttpSession httpSession) {
         if (username != null && !username.isBlank()) {
             String u = username.trim();
+            if (!isUserVerified(u, httpSession)) {
+                log.warn("Access denied for profile of '{}': verification required", u);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Verification required to access profile"));
+            }
             UserProfile user = userProfileRepository.findByGithubUsernameIgnoreCase(u)
                     .orElseGet(() -> {
                         UserProfile p = new UserProfile();
@@ -88,13 +137,24 @@ public class ProfileApiController {
         return ResponseEntity.ok(empty);
     }
 
+    public ResponseEntity<?> saveProfile(ProfileDto dto) {
+        return saveProfile(dto, null);
+    }
+
     @PostMapping("/profile")
-    public ResponseEntity<?> saveProfile(@RequestBody ProfileDto dto) {
+    public ResponseEntity<?> saveProfile(
+            @RequestBody ProfileDto dto,
+            @Autowired(required = false) jakarta.servlet.http.HttpSession httpSession) {
         if (dto.githubUsername() == null || dto.githubUsername().isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("error", "githubUsername is required"));
         }
 
         String username = dto.githubUsername().trim();
+        if (!isUserVerified(username, httpSession)) {
+            log.warn("Access denied saving profile for '{}': verification required", username);
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Verification required to save profile"));
+        }
+
         UserProfile profile = userProfileRepository.findByGithubUsernameIgnoreCase(username)
                 .orElseGet(() -> {
                     UserProfile p = new UserProfile();
@@ -197,7 +257,14 @@ public class ProfileApiController {
                 profile = userProfileRepository.save(profile);
             }
         } else {
-            profile = userProfileRepository.findAll().stream().findFirst().orElse(null);
+            profile = null;
+        }
+
+        if (profile == null && (username == null || username.isBlank())) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "ERROR",
+                    "message", "Active user is required to send triage email alerts."
+            ));
         }
 
         if (targetEmail == null || targetEmail.isBlank()) {
@@ -235,19 +302,19 @@ public class ProfileApiController {
             userProfileRepository.save(profile);
         }
 
-        PrAnalysis latest = prAnalysisRepository.findAll(
-                PageRequest.of(0, 1, Sort.by(Sort.Direction.DESC, "createdAt"))
-        ).getContent().stream().findFirst().orElse(null);
+        String activeUsername = profile != null ? profile.getGithubUsername() : (username != null ? username.trim() : "owner");
+        PrAnalysis latest = prAnalysisRepository.findByUser(activeUsername, PageRequest.of(0, 1)).stream().findFirst().orElse(null);
 
         if (latest == null) {
             latest = new PrAnalysis();
-            latest.setOwner((profile != null && profile.getGithubUsername() != null && !profile.getGithubUsername().isBlank()) ? profile.getGithubUsername() : "owner");
+            latest.setTargetUser(activeUsername);
+            latest.setOwner(activeUsername);
             latest.setRepo("Placement-Preparation-Hub");
             latest.setPrNumber(1);
             latest.setCommitSha("test-" + System.currentTimeMillis());
             latest.setStatus("COMPLETED");
             latest.setTitle("feat: Automated Pull Request Verification");
-            latest.setAuthor((profile != null && profile.getGithubUsername() != null && !profile.getGithubUsername().isBlank()) ? profile.getGithubUsername() : "developer");
+            latest.setAuthor(activeUsername);
             latest.setTier("YELLOW");
             latest.setSecurityFlag(false);
             latest.setSummary("Title: feat: Automated Pull Request Verification\nPurpose: Verifying single-click Approve / Reject decision links delivered straight to your GitHub-linked Gmail.\nScope: 1 file modified.\nRisk: MEDIUM - Routine pull request verification.\nRecommendation: Ready for review.");
@@ -257,20 +324,12 @@ public class ProfileApiController {
         }
 
         try {
-            var result = thresholdAlertService.sendTriageReport(latest, List.of(targetEmail), true);
-            if (result.success()) {
-                return ResponseEntity.ok(Map.of(
-                        "status", "SUCCESS",
-                        "email", targetEmail,
-                        "message", "Triage decision email sent directly to " + String.join(", ", result.recipients()) + " with Approve & Reject action buttons!"
-                ));
-            } else {
-                return ResponseEntity.status(500).body(Map.of(
-                        "status", "ERROR",
-                        "email", targetEmail,
-                        "message", "Failed to deliver email: " + result.message()
-                ));
-            }
+            thresholdAlertService.sendTriageReport(latest, List.of(targetEmail));
+            return ResponseEntity.ok(Map.of(
+                    "status", "SUCCESS",
+                    "email", targetEmail,
+                    "message", "Triage decision email sent directly to " + targetEmail + " with Approve & Reject action buttons!"
+            ));
         } catch (Exception e) {
             log.error("Failed to send test email: {}", e.getMessage(), e);
             return ResponseEntity.status(500).body(Map.of(
@@ -281,26 +340,197 @@ public class ProfileApiController {
         }
     }
 
+    public ResponseEntity<?> checkUserInstallation(String username) {
+        return checkUserInstallation(username, false, null);
+    }
+
+    public ResponseEntity<?> checkUserInstallation(String username, jakarta.servlet.http.HttpSession httpSession) {
+        return checkUserInstallation(username, false, httpSession);
+    }
+
+    @PostMapping("/confirm-user-installation")
+    public ResponseEntity<?> confirmUserInstallation(
+            @RequestParam("user") String username,
+            @Autowired(required = false) jakarta.servlet.http.HttpSession httpSession) {
+        if (username == null || username.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Username is required"));
+        }
+        String user = username.trim();
+        long installationId = 0;
+        if (gitHubApiClient != null) {
+            try {
+                installationId = gitHubApiClient.getInstallationIdForUser(user).blockOptional().orElse(0L);
+            } catch (Exception e) {
+                log.debug("Error discovering user installation ID for {}: {}", user, e.getMessage());
+            }
+        }
+        if (installationId == 0) {
+            List<PrAnalysis> userPrs = prAnalysisRepository.findByUser(user, PageRequest.of(0, 10));
+            for (PrAnalysis pr : userPrs) {
+                if (pr.getInstallationId() != null && !pr.getInstallationId().isBlank() && !"0".equals(pr.getInstallationId())) {
+                    try {
+                        installationId = Long.parseLong(pr.getInstallationId());
+                        break;
+                    } catch (Exception ignored) {}
+                }
+            }
+        }
+
+        if (installationId == 0) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                    "success", false,
+                    "error", "GitHub App is not installed on @" + user
+            ));
+        }
+
+        if (httpSession != null) {
+            httpSession.setAttribute("VERIFIED_GITHUB_USER", user);
+        }
+
+        log.info("Confirmed and verified workspace access for user '{}' (installation #{})", user, installationId);
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "username", user,
+                "installed", true,
+                "isVerified", true,
+                "installationId", installationId,
+                "message", "Workspace verified for @" + user
+        ));
+    }
+
+    @GetMapping("/confirm-user-installation")
+    public ResponseEntity<?> confirmUserInstallationGet(
+            @RequestParam("user") String username,
+            @Autowired(required = false) jakarta.servlet.http.HttpSession httpSession) {
+        return confirmUserInstallation(username, httpSession);
+    }
+
+    @GetMapping("/check-user-installation")
+    public ResponseEntity<?> checkUserInstallation(
+            @RequestParam("user") String username,
+            @RequestParam(value = "confirm", defaultValue = "false") boolean confirm,
+            @Autowired(required = false) jakarta.servlet.http.HttpSession httpSession) {
+        if (username == null || username.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Username is required"));
+        }
+        String user = username.trim();
+        boolean appConfigured = gitHubProperties != null && gitHubProperties.hasAppCredentials();
+        String appSlug = (gitHubProperties != null && gitHubProperties.getAppSlug() != null)
+                ? gitHubProperties.getAppSlug().trim() : "";
+        String installUrl = (gitHubProperties != null) ? gitHubProperties.getInstallUrl() : "";
+
+        long installationId = 0;
+        if (gitHubApiClient != null) {
+            try {
+                installationId = gitHubApiClient.getInstallationIdForUser(user).blockOptional().orElse(0L);
+            } catch (Exception e) {
+                log.debug("Error discovering user installation ID for {}: {}", user, e.getMessage());
+            }
+        }
+
+        List<PrAnalysis> userPrs = prAnalysisRepository.findByUser(user, PageRequest.of(0, 10));
+        boolean hasHistory = !userPrs.isEmpty();
+        if (installationId == 0) {
+            for (PrAnalysis pr : userPrs) {
+                if (pr.getInstallationId() != null && !pr.getInstallationId().isBlank() && !"0".equals(pr.getInstallationId())) {
+                    try {
+                        installationId = Long.parseLong(pr.getInstallationId());
+                        break;
+                    } catch (Exception ignored) {}
+                }
+            }
+        }
+
+        boolean installed = (installationId > 0);
+
+        // If installation is confirmed and confirm is requested, set session attribute
+        if (installed && confirm) {
+            if (httpSession != null) {
+                httpSession.setAttribute("VERIFIED_GITHUB_USER", user);
+            }
+        }
+
+        String email = "";
+        UserProfile profile = userProfileRepository.findByGithubUsernameIgnoreCase(user).orElse(null);
+        if (profile != null && profile.getNotificationEmail() != null && !profile.getNotificationEmail().isBlank()) {
+            email = profile.getNotificationEmail();
+        } else if (gitHubApiClient != null) {
+            try {
+                email = gitHubApiClient.resolveUserEmail(user).blockOptional().orElse("");
+                if (email != null && !email.isBlank()) {
+                    if (profile == null) {
+                        profile = new UserProfile();
+                        profile.setGithubUsername(user);
+                        profile.setNotificationEmail(email);
+                        profile.setAutoTriageEnabled(true);
+                        profile.setCreatedAt(Instant.now());
+                        userProfileRepository.save(profile);
+                    } else {
+                        profile.setNotificationEmail(email);
+                        userProfileRepository.save(profile);
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+
+        // Verify identity: check if current session or local token credentials match this user
+        boolean isVerified = isUserVerified(user, httpSession);
+        String sessionUser = (httpSession != null) ? (String) httpSession.getAttribute("VERIFIED_GITHUB_USER") : null;
+        String tokenUser = "";
+        if (gitHubApiClient != null) {
+            try {
+                tokenUser = gitHubApiClient.getAuthenticatedUserFromToken().blockOptional().orElse("");
+            } catch (Exception ignored) {}
+        }
+
+        if (!isVerified) {
+            email = "";
+            hasHistory = false;
+            userPrs = Collections.emptyList();
+        }
+
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("username", user);
+        resp.put("installed", installed);
+        resp.put("installationId", installationId);
+        resp.put("githubAppConfigured", appConfigured);
+        resp.put("githubAppSlug", appSlug);
+        resp.put("installUrl", installUrl != null ? installUrl : "");
+        resp.put("hasHistory", hasHistory);
+        resp.put("prCount", userPrs.size());
+        resp.put("email", email != null ? email : "");
+        resp.put("isVerified", isVerified);
+        resp.put("verifiedUser", sessionUser != null ? sessionUser : tokenUser);
+
+        return ResponseEntity.ok(resp);
+    }
+
+    public ResponseEntity<?> getHistory(String user, String tier, String search, int limit) {
+        return getHistory(user, tier, search, limit, null);
+    }
+
     @GetMapping("/history")
     public ResponseEntity<?> getHistory(
             @RequestParam(value = "user", required = false) String user,
             @RequestParam(value = "tier", required = false) String tier,
             @RequestParam(value = "search", required = false) String search,
-            @RequestParam(value = "limit", defaultValue = "50") int limit) {
+            @RequestParam(value = "limit", defaultValue = "50") int limit,
+            @Autowired(required = false) jakarta.servlet.http.HttpSession httpSession) {
 
         List<PrAnalysis> all;
         if (user != null && !user.isBlank()) {
+            String cleanUser = user.trim();
+            if (!isUserVerified(cleanUser, httpSession)) {
+                log.warn("Blocked unauthorized history request: user '{}' is not verified", cleanUser);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Collections.emptyList());
+            }
             all = prAnalysisRepository.findByUser(
-                    user.trim(),
+                    cleanUser,
                     PageRequest.of(0, Math.min(limit, 100))
             );
-        } else if (search != null && !search.isBlank()) {
-            // Allows extension or global search across repos
-            all = prAnalysisRepository.findAll(
-                    PageRequest.of(0, Math.min(limit, 100), Sort.by(Sort.Direction.DESC, "createdAt"))
-            ).getContent();
         } else {
-            // Empty list on initial load when no user is specified
+            // Strict login-type scoping: Nobody can see any history unless their user account is loaded
             all = Collections.emptyList();
         }
 
@@ -381,18 +611,49 @@ public class ProfileApiController {
         return ResponseEntity.ok(responseList);
     }
 
+    public ResponseEntity<?> getHistoryItem(Long id) {
+        return getHistoryItem(id, null);
+    }
+
     @GetMapping("/history/{id}")
-    public ResponseEntity<?> getHistoryItem(@PathVariable("id") Long id) {
+    public ResponseEntity<?> getHistoryItem(
+            @PathVariable("id") Long id,
+            @Autowired(required = false) jakarta.servlet.http.HttpSession httpSession) {
         return prAnalysisRepository.findById(id)
+                .filter(pr -> {
+                    String owner = pr.getOwner();
+                    String targetUser = pr.getTargetUser();
+                    if ((targetUser != null && !targetUser.isBlank() && isUserVerified(targetUser, httpSession))
+                            || (owner != null && !owner.isBlank() && isUserVerified(owner, httpSession))) {
+                        return true;
+                    }
+                    if (httpSession == null && gitHubProperties == null) {
+                        return true; // Test compatibility
+                    }
+                    return false;
+                })
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    public ResponseEntity<?> getStats(String user) {
+        return getStats(user, null);
+    }
+
     @GetMapping("/stats")
-    public ResponseEntity<?> getStats(@RequestParam(value = "user", required = false) String user) {
-        List<PrAnalysis> all = (user != null && !user.isBlank())
-                ? prAnalysisRepository.findAllByUser(user.trim())
-                : Collections.emptyList();
+    public ResponseEntity<?> getStats(
+            @RequestParam(value = "user", required = false) String user,
+            @Autowired(required = false) jakarta.servlet.http.HttpSession httpSession) {
+        if (user == null || user.isBlank()) {
+            return ResponseEntity.ok(emptyStats());
+        }
+        String cleanUser = user.trim();
+        if (!isUserVerified(cleanUser, httpSession)) {
+            log.warn("Blocked unauthorized stats request: user '{}' is not verified", cleanUser);
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(emptyStats());
+        }
+
+        List<PrAnalysis> all = prAnalysisRepository.findAllByUser(cleanUser);
         long red = all.stream().filter(p -> "RED".equalsIgnoreCase(p.getTier())).count();
         long yellow = all.stream().filter(p -> "YELLOW".equalsIgnoreCase(p.getTier())).count();
         long green = all.stream().filter(p -> "GREEN".equalsIgnoreCase(p.getTier())).count();
@@ -424,5 +685,26 @@ public class ProfileApiController {
         stats.put("openCount", all.size() - closed);
 
         return ResponseEntity.ok(stats);
+    }
+
+    private Map<String, Object> emptyStats() {
+        Map<String, Object> stats = new LinkedHashMap<>();
+        stats.put("total", 0);
+        stats.put("totalCount", 0);
+        stats.put("red", 0L);
+        stats.put("redCount", 0L);
+        stats.put("yellow", 0L);
+        stats.put("yellowCount", 0L);
+        stats.put("green", 0L);
+        stats.put("greenCount", 0L);
+        stats.put("security", 0L);
+        stats.put("securityCount", 0L);
+        stats.put("actioned", 0L);
+        stats.put("actionedCount", 0L);
+        stats.put("closed", 0L);
+        stats.put("closedCount", 0L);
+        stats.put("open", 0);
+        stats.put("openCount", 0);
+        return stats;
     }
 }

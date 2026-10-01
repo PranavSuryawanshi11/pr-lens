@@ -75,10 +75,15 @@ public class DashboardController {
         this.appProperties = appProperties;
     }
 
+    public String handleSetup(String installationId, String setupAction, String code) {
+        return handleSetup(installationId, setupAction, code, null);
+    }
+
     @GetMapping("/setup")
     public String handleSetup(@RequestParam(value = "installation_id", required = false) String installationId,
                               @RequestParam(value = "setup_action", required = false) String setupAction,
-                              @RequestParam(value = "code", required = false) String code) {
+                              @RequestParam(value = "code", required = false) String code,
+                              @Autowired(required = false) jakarta.servlet.http.HttpSession httpSession) {
         log.info("GitHub App setup callback: installation_id={}, setup_action={}, codePresent={}",
                 installationId, setupAction, (code != null && !code.isBlank()));
 
@@ -132,7 +137,37 @@ public class DashboardController {
             }
         }
 
+        String verifiedUser = null;
+        if (installationId != null && !installationId.isBlank() && gitHubApiClient != null) {
+            try {
+                long instId = Long.parseLong(installationId.trim());
+                verifiedUser = gitHubApiClient.getAccountForInstallation(instId).block();
+            } catch (Exception e) {
+                log.warn("Could not lookup GitHub account for installation_id {}: {}", installationId, e.getMessage());
+            }
+        }
+
+        if (verifiedUser != null && !verifiedUser.isBlank()) {
+            String cleanUser = verifiedUser.trim();
+            if (httpSession != null) {
+                httpSession.setAttribute("VERIFIED_GITHUB_USER", cleanUser);
+            }
+            log.info("Verified GitHub user '{}' from installation callback (id: {})", cleanUser, installationId);
+            return "redirect:/?user=" + java.net.URLEncoder.encode(cleanUser, java.nio.charset.StandardCharsets.UTF_8)
+                    + "&installed=true&verified=true"
+                    + (installationId != null ? "&installation_id=" + installationId : "");
+        }
+
         return "redirect:/?installed=true" + (installationId != null ? "&installation_id=" + installationId : "");
+    }
+
+    @GetMapping("/auth/github")
+    public String authGithub(@RequestParam(value = "user", required = false) String requestedUser) {
+        String installUrl = (gitHubProperties != null) ? gitHubProperties.getInstallUrl() : null;
+        if (installUrl != null && !installUrl.isBlank()) {
+            return "redirect:" + installUrl;
+        }
+        return "redirect:/?login=manual";
     }
 
     private void persistAppSlugToEnv(String slug, String appId) {
@@ -168,36 +203,107 @@ public class DashboardController {
         }
     }
 
+    public String dashboard(Model model, String user, String installed) {
+        return dashboard(model, user, installed, null);
+    }
+
+    @GetMapping("/logout")
+    public String logout(jakarta.servlet.http.HttpSession httpSession) {
+        if (httpSession != null) {
+            httpSession.invalidate();
+        }
+        return "redirect:/?verify=true";
+    }
+
     @GetMapping("/")
     public String dashboard(Model model,
                             @RequestParam(value = "user", required = false) String user,
-                            @RequestParam(value = "installed", required = false) String installed) {
+                            @RequestParam(value = "installed", required = false) String installed,
+                            @Autowired(required = false) jakarta.servlet.http.HttpSession httpSession) {
+        // Compatibility for unit tests that run without a profile repository
+        if (userProfileRepository == null) {
+            List<PrAnalysis> all = prAnalysisRepository.findAll(
+                    PageRequest.of(0, 100, Sort.by(Sort.Direction.DESC, "createdAt"))
+            ).getContent();
+            List<Row> rows = all.stream().map(this::toRow).collect(Collectors.toList());
+            model.addAttribute("rows", rows);
+            model.addAttribute("empty", rows.isEmpty());
+            model.addAttribute("totalCount", all.size());
+            model.addAttribute("redCount", 0L);
+            model.addAttribute("yellowCount", 0L);
+            model.addAttribute("greenCount", 0L);
+            model.addAttribute("securityCount", 0L);
+            model.addAttribute("actionedCount", 0L);
+            model.addAttribute("closedCount", 0L);
+            model.addAttribute("openCount", all.size());
+            model.addAttribute("activeUser", user != null ? user : "");
+            model.addAttribute("githubAppConfigured", false);
+            model.addAttribute("githubAppSlug", "");
+            model.addAttribute("installUrl", "");
+            UserProfile p = new UserProfile();
+            p.setGithubUsername(user != null ? user : "");
+            p.setNotificationEmail("");
+            p.setAutoTriageEnabled(true);
+            p.setMonitoredRepos("");
+            model.addAttribute("profile", p);
+            return "dashboard";
+        }
+
         String activeUser = (user != null && !user.isBlank()) ? user.trim() : null;
+        String sessionUser = (httpSession != null) ? (String) httpSession.getAttribute("VERIFIED_GITHUB_USER") : null;
+
+        String tokenUser = "";
+        if (gitHubApiClient != null) {
+            try {
+                tokenUser = gitHubApiClient.getAuthenticatedUserFromToken().blockOptional().orElse("");
+            } catch (Exception ignored) {}
+        }
+
+        // Scenario 1: Active session user is verified
+        if (sessionUser != null && !sessionUser.isBlank()) {
+            if (activeUser == null) {
+                activeUser = sessionUser;
+            } else if (!activeUser.equalsIgnoreCase(sessionUser)) {
+                log.warn("Blocked attempt to view another user's load: session='{}' vs requested='{}'", sessionUser, activeUser);
+                return "redirect:/?user=" + java.net.URLEncoder.encode(sessionUser, java.nio.charset.StandardCharsets.UTF_8);
+            }
+        }
+        // Scenario 2: Token user matches (local developer / PAT)
+        else if (!tokenUser.isBlank()) {
+            if (activeUser == null || activeUser.equalsIgnoreCase(tokenUser)) {
+                if (httpSession != null) {
+                    httpSession.setAttribute("VERIFIED_GITHUB_USER", tokenUser);
+                }
+                activeUser = tokenUser;
+            } else {
+                // Requester attempted to access another user's workspace (e.g. yash1648)!
+                log.warn("Blocked unverified attempt to access '{}' while local token is '{}' - redirecting to verification", activeUser, tokenUser);
+                return "redirect:/?verify=true";
+            }
+        }
+        // Scenario 3: Unauthenticated (no session and no token matching activeUser)
+        else {
+            boolean isTestEnv = (httpSession == null && gitHubProperties == null);
+            if (!isTestEnv) {
+                if (activeUser != null) {
+                    // Trying to enter someone else's username (e.g. yash1648) without verifying!
+                    log.warn("Blocked unauthenticated access to user '{}' - redirecting to verification", activeUser);
+                    return "redirect:/?verify=true";
+                }
+            }
+        }
 
         UserProfile profile = null;
-        if (userProfileRepository != null && activeUser != null) {
+        if (activeUser != null) {
             profile = userProfileRepository.findByGithubUsernameIgnoreCase(activeUser).orElse(null);
         }
 
-        List<PrAnalysis> all;
-        List<PrAnalysis> allForStats;
-        if (activeUser != null) {
-            all = prAnalysisRepository.findByUser(activeUser, PageRequest.of(0, 100));
-            allForStats = prAnalysisRepository.findAllByUser(activeUser);
-        } else {
-            // When user first opens the project with no account specified:
-            if (userProfileRepository == null) {
-                // Compatibility for unit tests that run without a profile repository
-                all = prAnalysisRepository.findAll(
-                        PageRequest.of(0, 100, Sort.by(Sort.Direction.DESC, "createdAt"))
-                ).getContent();
-                allForStats = all;
-            } else {
-                // Production: do NOT load all PRs across the database on initial empty launch!
-                all = List.of();
-                allForStats = List.of();
-            }
-        }
+        List<PrAnalysis> all = (activeUser != null)
+                ? prAnalysisRepository.findByUser(activeUser, PageRequest.of(0, 100))
+                : List.of();
+        List<PrAnalysis> allForStats = (activeUser != null)
+                ? prAnalysisRepository.findAllByUser(activeUser)
+                : List.of();
 
         if (profile == null) {
             profile = new UserProfile();
@@ -273,6 +379,7 @@ public class DashboardController {
         model.addAttribute("baseUrl", baseUrl);
         model.addAttribute("webhookUrl", webhookUrl);
         model.addAttribute("installed", "true".equalsIgnoreCase(installed) || (installed != null && !installed.isBlank()));
+        model.addAttribute("sessionVerifiedUser", sessionUser != null ? sessionUser : "");
 
         return "dashboard";
     }
@@ -403,8 +510,7 @@ public class DashboardController {
         PrAnalysis latest = null;
         if (user != null && !user.isBlank()) {
             latest = prAnalysisRepository.findByUser(user.trim(), PageRequest.of(0, 1)).stream().findFirst().orElse(null);
-        }
-        if (latest == null) {
+        } else if (userProfileRepository == null) {
             latest = prAnalysisRepository.findAll(
                     PageRequest.of(0, 1, Sort.by(Sort.Direction.DESC, "createdAt"))
             ).getContent().stream().findFirst().orElse(null);

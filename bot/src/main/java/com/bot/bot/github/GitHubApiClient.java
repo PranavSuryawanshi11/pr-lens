@@ -248,6 +248,137 @@ public class GitHubApiClient {
     }
 
     /**
+     * Queries GitHub for the installation ID associated with a user or organization account.
+     * GET /users/{username}/installation (authenticated with App JWT),
+     * or fallback to GET /orgs/{username}/installation.
+     */
+    public Mono<Long> getInstallationIdForUser(String username) {
+        if (!gitHubProperties.hasAppCredentials() || username == null || username.isBlank()) {
+            return Mono.just(0L);
+        }
+        String cleanUser = username.trim();
+        String userUrl = String.format("%s/users/%s/installation", gitHubProperties.getApiUrl(), cleanUser);
+        try {
+            String appJwt = jwtGenerator.generateAppToken();
+            return webClient.get()
+                    .uri(userUrl)
+                    .header("Authorization", "Bearer " + appJwt)
+                    .header("Accept", "application/vnd.github.v3+json")
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .map(jsonStr -> {
+                        try {
+                            JsonObject json = gson.fromJson(jsonStr, JsonObject.class);
+                            if (json != null && json.has("id")) {
+                                long id = json.get("id").getAsLong();
+                                log.info("Discovered GitHub App installation ID {} for user {}", id, cleanUser);
+                                return id;
+                            }
+                        } catch (Exception ignored) {}
+                        return 0L;
+                    })
+                    .onErrorResume(userErr -> {
+                        String orgUrl = String.format("%s/orgs/%s/installation", gitHubProperties.getApiUrl(), cleanUser);
+                        return webClient.get()
+                                .uri(orgUrl)
+                                .header("Authorization", "Bearer " + appJwt)
+                                .header("Accept", "application/vnd.github.v3+json")
+                                .retrieve()
+                                .bodyToMono(String.class)
+                                .map(orgJsonStr -> {
+                                    try {
+                                        JsonObject json = gson.fromJson(orgJsonStr, JsonObject.class);
+                                        if (json != null && json.has("id")) {
+                                            long id = json.get("id").getAsLong();
+                                            log.info("Discovered GitHub App installation ID {} for org {}", id, cleanUser);
+                                            return id;
+                                        }
+                                    } catch (Exception ignored) {}
+                                    return 0L;
+                                })
+                                .onErrorResume(e -> {
+                                    log.debug("No GitHub App installation found for user/org {}: {}", cleanUser, e.getMessage());
+                                    return Mono.just(0L);
+                                });
+                    });
+        } catch (Exception e) {
+            log.warn("Could not generate JWT to lookup installation for user {}: {}", cleanUser, e.getMessage());
+            return Mono.just(0L);
+        }
+    }
+
+    /**
+     * Resolves the GitHub username or organization login that owns this installation ID.
+     * GET /app/installations/{installation_id} (authenticated with App JWT).
+     */
+    public Mono<String> getAccountForInstallation(long installationId) {
+        if (!gitHubProperties.hasAppCredentials() || installationId <= 0) {
+            return Mono.empty();
+        }
+        String url = String.format("%s/app/installations/%d", gitHubProperties.getApiUrl(), installationId);
+        try {
+            String appJwt = jwtGenerator.generateAppToken();
+            return webClient.get()
+                    .uri(url)
+                    .header("Authorization", "Bearer " + appJwt)
+                    .header("Accept", "application/vnd.github.v3+json")
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .map(jsonStr -> {
+                        try {
+                            JsonObject json = gson.fromJson(jsonStr, JsonObject.class);
+                            if (json != null && json.has("account")) {
+                                JsonObject acct = json.getAsJsonObject("account");
+                                if (acct != null && acct.has("login")) {
+                                    String login = acct.get("login").getAsString();
+                                    log.info("Resolved installation {} to GitHub account: {}", installationId, login);
+                                    return login;
+                                }
+                            }
+                        } catch (Exception ignored) {}
+                        return "";
+                    })
+                    .onErrorResume(e -> {
+                        log.warn("Could not resolve account for installation {}: {}", installationId, e.getMessage());
+                        return Mono.empty();
+                    });
+        } catch (Exception e) {
+            log.warn("Could not generate JWT to lookup installation {}: {}", installationId, e.getMessage());
+            return Mono.empty();
+        }
+    }
+
+    /**
+     * Resolves the login of the user authenticated by the configured GITHUB_TOKEN / PAT.
+     * GET /user
+     */
+    public Mono<String> getAuthenticatedUserFromToken() {
+        if (!gitHubProperties.hasToken()) {
+            return Mono.empty();
+        }
+        String url = String.format("%s/user", gitHubProperties.getApiUrl());
+        return webClient.get()
+                .uri(url)
+                .header("Authorization", "Bearer " + gitHubProperties.getToken().trim())
+                .header("Accept", "application/vnd.github.v3+json")
+                .retrieve()
+                .bodyToMono(String.class)
+                .map(jsonStr -> {
+                    try {
+                        JsonObject json = gson.fromJson(jsonStr, JsonObject.class);
+                        if (json != null && json.has("login")) {
+                            return json.get("login").getAsString();
+                        }
+                    } catch (Exception ignored) {}
+                    return "";
+                })
+                .onErrorResume(e -> {
+                    log.debug("Could not resolve user from token: {}", e.getMessage());
+                    return Mono.empty();
+                });
+    }
+
+    /**
      * Fetch unified diff for a PR using PAT, installation token, or unauthenticated for public repos.
      */
     public Mono<String> fetchDiff(String owner, String repo, int prNumber, long installationId) {

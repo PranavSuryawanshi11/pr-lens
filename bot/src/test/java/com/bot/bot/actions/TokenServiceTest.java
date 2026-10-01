@@ -57,6 +57,10 @@ class TokenServiceTest {
         assertEquals("r", p.repo());
         assertEquals(42, p.prNumber());
         assertEquals("approve", p.action());
+        long now = Instant.now().getEpochSecond();
+        long thirtyDaysSeconds = 30L * 24 * 60 * 60;
+        assertTrue(p.expiryEpoch() >= now + thirtyDaysSeconds - 10);
+        assertTrue(p.expiryEpoch() <= now + thirtyDaysSeconds + 10);
     }
 
     @Test

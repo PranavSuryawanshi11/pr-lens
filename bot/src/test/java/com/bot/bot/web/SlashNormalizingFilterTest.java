@@ -37,4 +37,31 @@ class SlashNormalizingFilterTest {
         assertNull(response.getRedirectedUrl());
         assertEquals(200, response.getStatus());
     }
+
+    @Test
+    void redirectsJsessionidPathToCanonicalPath() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/;jsessionid=38AC1B5C762438B8BDA2CEE90C0278B2");
+        request.setQueryString("user=PranavSuryawanshi11");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        MockFilterChain chain = new MockFilterChain();
+
+        filter.doFilterInternal(request, response, chain);
+
+        assertEquals(302, response.getStatus());
+        assertEquals("/?user=PranavSuryawanshi11", response.getRedirectedUrl());
+    }
+
+    @Test
+    void redirectsDuplicateSlashWithJsessionid() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "//;jsessionid=12345");
+        request.setQueryString("user=octocat");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        MockFilterChain chain = new MockFilterChain();
+
+        filter.doFilterInternal(request, response, chain);
+
+        assertEquals(302, response.getStatus());
+        assertEquals("/?user=octocat", response.getRedirectedUrl());
+    }
 }
+

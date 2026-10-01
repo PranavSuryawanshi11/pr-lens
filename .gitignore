@@ -16,6 +16,8 @@ bot/data/
 *.db
 *.mv.db
 *.lock.db
+*cookies.txt
+
 
 # IDE & Editor
 .vscode/

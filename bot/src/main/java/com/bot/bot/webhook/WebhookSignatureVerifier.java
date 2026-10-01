@@ -20,7 +20,7 @@ public class WebhookSignatureVerifier {
     public boolean verifySignature(String payload, String signature) {
         String secret = gitHubProperties.getWebhookSecret();
         if (secret == null || secret.isBlank()) {
-            return true;
+            return false;
         }
         if (signature == null || signature.isBlank()) {
             log.warn("Webhook secret is configured, but X-Hub-Signature-256 header is missing");

@@ -27,13 +27,16 @@ async function checkBackendHealth() {
 
 async function loadProfile() {
   try {
-    const res = await fetch(`${BACKEND_URL}/api/profile`);
+    const res = await fetch(`${BACKEND_URL}/api/profile`, { credentials: "include" });
     if (res.ok) {
       const data = await res.json();
       if (data) {
         document.getElementById("ghUsername").value = data.githubUsername || "";
         document.getElementById("notifyEmail").value = data.notificationEmail || "";
         document.getElementById("autoTriageToggle").checked = !!data.autoTriageEnabled;
+        if (data.githubUsername) {
+          loadRecentHistory();
+        }
       }
     }
   } catch (e) {
@@ -140,8 +143,10 @@ async function triageCurrentTab() {
 
 async function loadRecentHistory() {
   const listEl = document.getElementById("recentList");
+  const user = document.getElementById("ghUsername") ? document.getElementById("ghUsername").value.trim() : "";
+  const userParam = user ? `&user=${encodeURIComponent(user)}` : "";
   try {
-    const res = await fetch(`${BACKEND_URL}/api/history?limit=5`);
+    const res = await fetch(`${BACKEND_URL}/api/history?limit=5${userParam}`, { credentials: "include" });
     if (!res.ok) {
       listEl.innerHTML = `<div class="empty-text">No active backend connection.</div>`;
       return;

@@ -480,9 +480,25 @@ public class EmailTemplate {
         }
         sb.append("</tr></table>");
         sb.append("<p style=\"margin:8px 0 0;font-size:11px;color:").append(MUTED).append(";").append(FW)
-          .append("\">Signed HMAC token &bull; Expires in 30 minutes &bull; Applies securely on GitHub</p>");
+          .append("\">Signed HMAC token &bull; ").append(getExpiryDisplayText()).append(" &bull; Applies securely on GitHub</p>");
         sb.append("</div>");
         return sb.toString();
+    }
+
+    private String getExpiryDisplayText() {
+        if (tokenService == null || tokenService.getExpirySeconds() <= 0) {
+            return "Expires in 30 days";
+        }
+        long days = tokenService.getExpirySeconds() / (24L * 3600L);
+        if (days >= 1) {
+            return "Expires in " + days + " day" + (days == 1 ? "" : "s");
+        }
+        long hours = tokenService.getExpirySeconds() / 3600L;
+        if (hours >= 1) {
+            return "Expires in " + hours + " hour" + (hours == 1 ? "" : "s");
+        }
+        long minutes = tokenService.getExpirySeconds() / 60L;
+        return "Expires in " + minutes + " minutes";
     }
 
     private String styleActionLinks(PrAnalysis a) {

@@ -284,4 +284,123 @@ class ProfileApiControllerTest {
         assertEquals(1L, stats.get("security"));
         assertEquals(2L, stats.get("actioned"));
     }
+
+    @Test
+    @DisplayName("checkUserInstallation returns installed=true when installation found")
+    void checkUserInstallation_whenInstalled_returnsTrue() {
+        when(gitHubApiClient.getInstallationIdForUser("octocat")).thenReturn(Mono.just(12345L));
+        when(userProfileRepository.findByGithubUsernameIgnoreCase("octocat")).thenReturn(Optional.empty());
+        when(prAnalysisRepository.findByUser(eq("octocat"), any(Pageable.class))).thenReturn(Collections.emptyList());
+
+        ResponseEntity<?> resp = controller.checkUserInstallation("octocat");
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        Map<?, ?> body = (Map<?, ?>) resp.getBody();
+        assertEquals("octocat", body.get("username"));
+        assertEquals(true, body.get("installed"));
+        assertEquals(12345L, body.get("installationId"));
+    }
+
+    @Test
+    @DisplayName("checkUserInstallation returns installed=false when no installation found")
+    void checkUserInstallation_whenNotInstalled_returnsFalse() {
+        when(gitHubApiClient.getInstallationIdForUser("newuser")).thenReturn(Mono.just(0L));
+        when(userProfileRepository.findByGithubUsernameIgnoreCase("newuser")).thenReturn(Optional.empty());
+        when(prAnalysisRepository.findByUser(eq("newuser"), any(Pageable.class))).thenReturn(Collections.emptyList());
+
+        ResponseEntity<?> resp = controller.checkUserInstallation("newuser");
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        Map<?, ?> body = (Map<?, ?>) resp.getBody();
+        assertEquals("newuser", body.get("username"));
+        assertEquals(false, body.get("installed"));
+        assertEquals(0L, body.get("installationId"));
+    }
+
+    @Test
+    @DisplayName("getHistory without user returns empty list ensuring no cross-user data leakage")
+    void getHistory_withoutUser_returnsEmptyList() {
+        ResponseEntity<?> resp = controller.getHistory(null, null, null, 50);
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        List<?> list = (List<?>) resp.getBody();
+        assertTrue(list.isEmpty());
+
+        ResponseEntity<?> respBlank = controller.getHistory("   ", null, "searchQuery", 50);
+        assertEquals(HttpStatus.OK, respBlank.getStatusCode());
+        List<?> listBlank = (List<?>) respBlank.getBody();
+        assertTrue(listBlank.isEmpty());
+    }
+
+    @Test
+    @DisplayName("getHistory blocks user from accessing another user's load when session mismatch")
+    void getHistory_whenSessionUserMismatch_returnsForbidden() {
+        jakarta.servlet.http.HttpSession session = mock(jakarta.servlet.http.HttpSession.class);
+        when(session.getAttribute("VERIFIED_GITHUB_USER")).thenReturn("alice");
+
+        // Alice attempts to access Bob's load -> MUST return 403 Forbidden
+        ResponseEntity<?> resp = controller.getHistory("bob", null, null, 50, session);
+        assertEquals(HttpStatus.FORBIDDEN, resp.getStatusCode());
+        List<?> list = (List<?>) resp.getBody();
+        assertTrue(list.isEmpty());
+
+        // Alice accessing Alice's load -> OK
+        when(prAnalysisRepository.findByUser(eq("alice"), any(Pageable.class))).thenReturn(Collections.emptyList());
+        ResponseEntity<?> respOk = controller.getHistory("alice", null, null, 50, session);
+        assertEquals(HttpStatus.OK, respOk.getStatusCode());
+    }
+
+    @Test
+    @DisplayName("checkUserInstallation flags unverified user when not authenticated in session or token")
+    void checkUserInstallation_flagsUnverifiedWhenNotAuthenticated() {
+        when(gitHubApiClient.getInstallationIdForUser("bob")).thenReturn(Mono.just(99999L));
+        when(gitHubApiClient.getAuthenticatedUserFromToken()).thenReturn(Mono.just("alice"));
+        when(prAnalysisRepository.findByUser(eq("bob"), any(Pageable.class))).thenReturn(Collections.emptyList());
+
+        jakarta.servlet.http.HttpSession session = mock(jakarta.servlet.http.HttpSession.class);
+        when(session.getAttribute("VERIFIED_GITHUB_USER")).thenReturn("alice");
+
+        // Bob has installed GitHub App, but session is logged in as Alice -> isVerified MUST be false
+        ResponseEntity<?> resp = controller.checkUserInstallation("bob", session);
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        Map<?, ?> body = (Map<?, ?>) resp.getBody();
+        assertEquals(true, body.get("installed"));
+        assertEquals(false, body.get("isVerified"));
+
+        // Alice checking Alice -> isVerified is true
+        when(gitHubApiClient.getInstallationIdForUser("alice")).thenReturn(Mono.just(88888L));
+        when(prAnalysisRepository.findByUser(eq("alice"), any(Pageable.class))).thenReturn(Collections.emptyList());
+        ResponseEntity<?> respAlice = controller.checkUserInstallation("alice", session);
+        Map<?, ?> bodyAlice = (Map<?, ?>) respAlice.getBody();
+        assertEquals(true, bodyAlice.get("isVerified"));
+    }
+
+    @Test
+    @DisplayName("confirmUserInstallation sets session and returns verified=true when installed")
+    void confirmUserInstallation_whenInstalled_setsSessionAndReturnsVerified() {
+        when(gitHubApiClient.getInstallationIdForUser("pranavtemp111")).thenReturn(Mono.just(166770110L));
+        jakarta.servlet.http.HttpSession session = mock(jakarta.servlet.http.HttpSession.class);
+
+        ResponseEntity<?> resp = controller.confirmUserInstallation("pranavtemp111", session);
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        Map<?, ?> body = (Map<?, ?>) resp.getBody();
+        assertEquals(true, body.get("success"));
+        assertEquals(true, body.get("isVerified"));
+        assertEquals(166770110L, body.get("installationId"));
+        verify(session).setAttribute("VERIFIED_GITHUB_USER", "pranavtemp111");
+    }
+
+    @Test
+    @DisplayName("checkUserInstallation with confirm=true sets session when installed")
+    void checkUserInstallation_withConfirmTrue_setsSession() {
+        when(gitHubApiClient.getInstallationIdForUser("pranavtemp111")).thenReturn(Mono.just(166770110L));
+        when(userProfileRepository.findByGithubUsernameIgnoreCase("pranavtemp111")).thenReturn(Optional.empty());
+        when(prAnalysisRepository.findByUser(eq("pranavtemp111"), any(Pageable.class))).thenReturn(Collections.emptyList());
+        jakarta.servlet.http.HttpSession session = mock(jakarta.servlet.http.HttpSession.class);
+
+        ResponseEntity<?> resp = controller.checkUserInstallation("pranavtemp111", true, session);
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        Map<?, ?> body = (Map<?, ?>) resp.getBody();
+        assertEquals(true, body.get("installed"));
+        assertEquals(166770110L, body.get("installationId"));
+        verify(session).setAttribute("VERIFIED_GITHUB_USER", "pranavtemp111");
+    }
 }
+

@@ -31,14 +31,17 @@ class ConfigPropertiesTest {
         assertTrue(props.isReviewSummaryEnabled());
         assertNull(props.getActionSecret());
         assertNull(props.getBaseUrl());
+        assertEquals(30, props.getActionTokenExpiryDays());
 
         props.setAutoApprove(true);
         props.setActionSecret("secret");
         props.setBaseUrl("http://localhost:8080");
+        props.setActionTokenExpiryDays(14);
 
         assertTrue(props.isAutoApprove());
         assertEquals("secret", props.getActionSecret());
         assertEquals("http://localhost:8080", props.getBaseUrl());
+        assertEquals(14, props.getActionTokenExpiryDays());
     }
 
     @Test
